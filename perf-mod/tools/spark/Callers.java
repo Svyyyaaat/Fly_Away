@@ -19,7 +19,7 @@ public class Callers {
   }
   public static void main(String[] a) throws Exception {
     SamplerData d=SamplerData.parseFrom(Files.readAllBytes(Path.of(a[0]))); target=a[1]; depth=Integer.parseInt(a[2]);
-    ThreadNode th=d.getThreadsList().get(0); nodes=th.getChildrenList(); double tt=sum(th.getTimesList());
+    String tn=System.getProperty("thread","Render thread"); ThreadNode th=d.getThreadsList().stream().filter(t->t.getName().contains(tn)).findFirst().orElse(d.getThreadsList().get(0)); nodes=th.getChildrenList(); double tt=sum(th.getTimesList());
     for(int r:th.getChildrenRefsList()) walk(nodes.get(r),new ArrayDeque<>());
     System.out.printf("TOTAL %.2f%%%n",100*total/tt);
     agg.entrySet().stream().sorted((x,y)->Double.compare(y.getValue(),x.getValue())).limit(a.length>3?Integer.parseInt(a[3]):15).forEach(e->System.out.printf("%6.2f%%%s%n",100*e.getValue()/tt,e.getKey()));

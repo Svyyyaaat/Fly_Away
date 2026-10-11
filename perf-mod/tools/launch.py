@@ -38,7 +38,7 @@ for a in v['arguments']['jvm']:
 for a in nf['arguments']['jvm']: jvm.append(s(a))
 game = ['--username', 'Tester', '--version', 'neoforge-21.1.252', '--gameDir', gamedir, '--assetsDir', f"{MC}/assets",
         '--assetIndex', v['assetIndex']['id'], '--uuid', '00000000000000000000000000000001', '--accessToken', '0',
-        '--userType', 'msa', '--versionType', 'release', '--width', '1280', '--height', '720'] + nf['arguments']['game'] + xgame
+        '--userType', 'msa', '--versionType', 'release', '--width', os.environ.get('MCW','1280'), '--height', os.environ.get('MCH','720')] + nf['arguments']['game'] + xgame
 cmd = jvm + [nf['mainClass']] + game
 os.chdir(gamedir)
 os.execvp(cmd[0], cmd)

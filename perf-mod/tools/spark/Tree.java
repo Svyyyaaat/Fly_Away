@@ -22,7 +22,7 @@ public class Tree {
   static void find(StackTraceNode n,String root){ if(nm(n).contains(root)){print(n,0);return;} for(int r:n.getChildrenRefsList()) find(nodes.get(r),root);}
   public static void main(String[] a) throws Exception {
     SamplerData d=SamplerData.parseFrom(Files.readAllBytes(Path.of(a[0]))); thr=Double.parseDouble(a[1]);
-    ThreadNode th=d.getThreadsList().get(0); nodes=th.getChildrenList(); tt=sum(th.getTimesList());
+    String tn=System.getProperty("thread","Render thread"); ThreadNode th=d.getThreadsList().stream().filter(t->t.getName().contains(tn)).findFirst().orElse(d.getThreadsList().get(0)); nodes=th.getChildrenList(); tt=sum(th.getTimesList());
     for(int r:th.getChildrenRefsList()) { if(a.length>2) find(nodes.get(r),a[2]); else print(nodes.get(r),0);}
   }
 }
