@@ -5,9 +5,9 @@ label=$1; jar=$2; shift 2
 I=$S/inst
 rm -f $I/mods/flyaway_perf*.jar
 [ "$jar" != none ] && cp "$jar" $I/mods/flyaway_perf.jar
-rm -rf $I/crash-reports; sed -i "s/^enableShaders=false/enableShaders=true/" $I/config/iris.properties
-pgrep -x Xvfb >/dev/null || (Xvfb :99 -screen 0 1280x720x24 >/dev/null 2>&1 &)
-export MCW=${MCW:-640} MCH=${MCH:-360} DISPLAY=:99 MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460
+rm -rf $I/crash-reports; if [ "${SHADERS:-1}" = 1 ]; then sed -i "s/^enableShaders=.*/enableShaders=true/" $I/config/iris.properties; else sed -i "s/^enableShaders=.*/enableShaders=false/" $I/config/iris.properties; fi
+pgrep -x Xvfb >/dev/null || (Xvfb :99 -screen 0 ${MCW:-640}x${MCH:-360}x24 >/dev/null 2>&1 &)
+export GALLIUM_NOOP=${NOOP:-0} MCW=${MCW:-640} MCH=${MCH:-360} DISPLAY=:99 MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460
 cd $I
 mkdir -p $S/bench
 timeout 2400 python3 -I $S/tools/launch.py $I -Xmx5500m -XX:MaxDirectMemorySize=1g -Dcustomskinloader.ignorePatchFailure=true -Dflyaway.harness=bench -Dflyaway.harness.label=$label "$@" > $S/bench/$label.log 2>&1

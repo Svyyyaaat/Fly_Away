@@ -99,14 +99,16 @@ the same spots. All patches below were written to sit on top of its mixins. They
   this happens every frame for every portal that is in the frustum but occluded.
 * **Fix (tunable)**: with `imm_ptl.occlusion.noSyncWhenHidden=true`, that branch answers "still hidden" instead of
   waiting. The query was still issued, so the next frame uses the fresh result.
-* **Why OFF by default**: a portal that comes out from behind an occluder is then drawn one frame late, for one
-  frame. That is a (tiny) visual difference. The brief's alternative of "render while the result is pending" was
+* **ON by default (lead decision)**: the user's 2026-10-03 profile spent **15.2%** of the render thread blocked in
+  exactly this read (`renderAndDecideVisibility:237`), the 2026-10-11 one 1.27%. The cost of enabling it is that a
+  portal coming out from behind an occluder is drawn one frame late, for one frame. The mixin has priority 900 so it
+  is applied before micimmptl's ordinal-0 wrap of the same method (otherwise ordinals would shift). The brief's alternative of "render while the result is pending" was
   rejected: it would render the whole world again (about 10% of the frame) for every occluded portal, which is much
   more than the 1.27% stall it would save. Ordinal 2 (first frame with no previous query) is not touched.
-* **Expected gain when enabled**: up to about 1.2%, plus the CPU/GPU overlap it restores.
+* **Expected gain**: 1.3% to 15% depending on how many occluded portals are on screen, plus the CPU/GPU overlap it restores.
 * **Risk when enabled**: one-frame pop-in of portals that become visible. No effect when disabled: the original
   call is made.
-* **Disable**: it is off by default. To turn it on, set `imm_ptl.occlusion.noSyncWhenHidden=true`. To remove the
+* **Disable**: set `imm_ptl.occlusion.noSyncWhenHidden=false` (stock behaviour). To remove the
   wrapper entirely, set `mixin.imm_ptl.PortalRenderInfoNoSyncWhenHiddenMixin=false`.
 
 ---

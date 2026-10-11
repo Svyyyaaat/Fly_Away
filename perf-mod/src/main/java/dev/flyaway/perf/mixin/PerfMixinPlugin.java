@@ -77,5 +77,8 @@ public final class PerfMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+        if (LOG_APPLY) org.slf4j.LoggerFactory.getLogger("FlyAwayPerf").info("[mixin] applied {} -> {}", mixinClassName, targetClassName);
     }
+
+    private static final boolean LOG_APPLY = Boolean.getBoolean("flyaway.logMixins");
 }
