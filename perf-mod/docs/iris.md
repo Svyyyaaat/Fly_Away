@@ -164,3 +164,144 @@ the lead's test run (expect "skipped" >> "done" for uniforms and executed << def
 * Immersive Portals: every visible portal re-runs the whole Iris pipeline (begin, shadows, composites, final) -
   limiting the number of rendered portals / portal render distance in `immersive_portals.json` is the biggest
   config lever for this area (owned by the imm_ptl agent).
+
+## Round 2 - remaining per-draw CPU in Iris programs
+
+I re-read the profile with a merged call tree, where every occurrence of a method is merged by callee. After round 1,
+`ExtendedShader.apply` (4.74%) breaks down like this:
+
+| part | % | status |
+|---|---|---|
+| framebuffer bind | 2.26 | round 1 |
+| `CustomUniforms.push` | 1.17 | round 1 |
+| vanilla `Uniform.upload` | 0.48 | patch 4 |
+| `glUseProgram` | 0.37 | round 1 |
+| `ProgramSamplers.update` (sampler objects + `glBindTextureUnit`) | 0.18 | rejected |
+| `ProgramUniforms.update` | 0.09 | - |
+| `updateMatrices` | 0.06 | - |
+| `setupTextures` | 0.03 | - |
+
+Before each of these draws, `ShaderInstance.setDefaultUniforms` costs 1.18%. That splits into the sampler `HashMap.put`
+(0.47), Veil's TAIL hook (0.29), Veil's uniform wrappers (0.17) and `Uniform.markDirty` (0.14).
+
+`ExtendedShader.clear` costs 1.85%. Most of it is the main-target rebind (1.51, round 1). The rest is the sampler
+unbind `glBindSamplers` (0.22).
+
+### 4. Vanilla uniform upload dedup for Iris programs - `iris.ExtendedShaderUniformDedupMixin` + `vanilla.iris.UniformUploadDedupMixin` (+ `iris.ProgramUniformsBuilderAccessor`)
+
+* Targets:
+  * `ExtendedShader#<init>`: `@WrapOperation` around `ProgramUniforms$Builder.buildUniforms()`.
+  * `ExtendedShader#uploadIfNotNull(Uniform)`: `@WrapOperation` around `Uniform.upload()`.
+  * Vanilla `com.mojang.blaze3d.shaders.Uniform#upload()` and `#setLocation(I)`: HEAD hooks that only clear a flag.
+* Problem: `updateUniforms()` uploads every vanilla uniform of the program with `glUniform*` on every draw. These are
+  `iris_ModelViewMat`, `iris_ProjMat`, `iris_ModelViewMatInverse`, `iris_ProjMatInverse`, `iris_NormalMat`,
+  `iris_ColorModulator`, `iris_Fog*`, `iris_TextureMat`, `iris_ChunkOffset`, `iris_GlintAlpha`, `iris_OverlayUV` and
+  `iris_LightUV`.
+  * Vanilla `Uniform.upload()` ignores its dirty flag.
+  * The inverse and normal matrices are uploaded twice per draw: once explicitly and once more from the list.
+  * Inside a batch, nearly all values are the same from one draw to the next.
+
+  Cost: 0.48% of the render thread.
+* Fix: `uploadIfNotNull` is only reached from `updateUniforms`, right after `apply()` made the program current. There,
+  the mixin compares the uniform's current value bit-for-bit with the value last uploaded to this program. If they
+  are equal, it skips the GL call. Program uniform state persists per program, so the program still holds that value
+  as long as nothing wrote the location in between. These rules make sure of that:
+  * Any other `Uniform.upload()` call clears the stored value. Examples are Sable's `sable$refreshModelMatrices` and
+    Epic Fight. `glUniform*` writes to whatever program is bound, so the patch does not try to track those writes.
+  * `Uniform.setLocation()` clears the stored value. Veil's shader_recompile swaps or relinks a ShaderInstance's program
+    and always re-resolves the locations (`veil$invalidate`).
+  * Locations that Iris writes itself are never deduplicated. At construction the patch records every location that
+    the program's `ProgramUniforms.Builder` handed out: Iris built-ins, shader-pack custom uniforms and API uniforms.
+    This matters because `iris_FogColor`, `iris_FogStart` and `iris_FogEnd` are both vanilla uniforms and Iris
+    PER_FRAME uniforms.
+  * Only uniforms that this shader created are handled (`Uniform.parent == this`). Iris' shared `FAKE_UNIFORM` is not.
+
+  Values that do change are uploaded as usual: per draw, per Immersive Portals pass, and between shadow and main
+  programs. I grepped all mod sources for the `iris_*` vanilla uniform names, and no mod writes them with raw
+  `glUniform*`.
+* Expected gain: about 0.3-0.4% of the render thread. That is the 0.48% minus the first upload of each changed value
+  and minus the cost of the comparison.
+* Risk: low.
+* Disable: `mixin.iris.ExtendedShaderUniformDedupMixin=false`. Alternatively `mixin.vanilla.UniformUploadDedupMixin=false`:
+  without the vanilla mixin, the Iris side falls back to a plain `upload()`.
+* Debug: with `iris.debugStats=true`, the log also shows "ExtendedShader vanilla uniform uploads skipped / done".
+
+### 5. Constant sampler names in `ShaderInstance.setDefaultUniforms` - `vanilla.iris.ShaderInstanceSamplerNamesMixin`
+
+* Target: `ShaderInstance#setDefaultUniforms`. A `@ModifyConstant` changes the loop bound `12` to `0`; it is the only
+  `bipush 12` in the method. A HEAD `@Inject` then runs the same loop.
+* Problem: the method runs before every draw that goes through `VertexBuffer.drawWithShader` or `BufferUploader`. That
+  covers all Iris entity batches, Sable sub-levels and Epic Fight meshes. It calls
+  `setSampler("Sampler" + i, getShaderTexture(i))` 12 times, which creates a new String each time. `HashMap.put` then
+  has to compute the hash and compare the characters of each one. Cost: `HashMap.put` 0.47% (putVal 0.30, hash 0.12).
+* Fix: the same calls run in the same order, but with interned constant names. Their hash is cached and nothing is
+  allocated. The virtual `setSampler` call is kept, because Veil's `ShaderProgramImpl.Wrapper` overrides it. Two other
+  mods' mixins hook this method and are not affected: Veil at TAIL, and Sodium Extra's `@ModifyExpressionValue` on the
+  fog getters.
+* Expected gain: about 0.2-0.3%.
+* Risk: very low.
+* Disable: `mixin.vanilla.ShaderInstanceSamplerNamesMixin=false`.
+
+### 6. Empty-builder fast path in Iris batched rendering - `iris.SegmentedBufferBuilderEmptyMixin`
+
+* Target: `SegmentedBufferBuilder#getSegments()` (HEAD, cancellable).
+* Problem: `FullyBufferedMultiBufferSource.readyUp()` calls `getSegments()` on all 32 builders for every batch: main,
+  shadow, hand and each portal pass. Each call allocates a capturing lambda and copies an `ArrayList`. That happens even
+  for the many builders that received no geometry in this batch. Cost: `ArrayList.<init>` under `getSegments`, 0.22%
+  self.
+* Fix: when the builder holds no `BufferBuilder` and no pending segment, return `Collections.emptyList()`. The only
+  caller just iterates over the result, so this is exactly equivalent.
+* Expected gain: about 0.1-0.2%.
+* Risk: none.
+* Disable: `mixin.iris.SegmentedBufferBuilderEmptyMixin=false`.
+
+### Round 2: things the lead must test
+
+1. Check that these mixins apply:
+   * the `@WrapOperation` in the `ExtendedShader` constructor (MixinExtras in a constructor, after `super()`);
+   * the `uploadIfNotNull` wrap (Sable's `ExtendedShaderMixin` on the same class only adds a method);
+   * the `Uniform` mixin;
+   * the constant/HEAD pair on `ShaderInstance.setDefaultUniforms` (Veil and Sodium Extra mix into the same method).
+2. Compare visuals with Solas:
+   * fog colour and distance transitions: underwater, lava, blindness, nether;
+   * enchantment glint on items and armor (`iris_TextureMat` changes per glint draw);
+   * entities in Create contraptions and Aeronautics sub-levels (Sable refreshes the matrices);
+   * Epic Fight mobs;
+   * hand rendering;
+   * portals (each pass uses a different camera);
+   * shader reload and resource reload (new programs start with no stored values);
+   * F3+T.
+3. With `iris.debugStats=true`, "ExtendedShader vanilla uniform uploads skipped" should be several times "done".
+
+### Round 2: rejected / not done
+
+* **Deferring the sampler-object unbind** (`ExtendedShader.clear` -> `IrisRenderSystem.unbindAllSamplers` ->
+  `glBindSamplers(0, all)`, 0.22%, followed by a rebind on the next draw). If it were deferred like the FBO bind, Iris
+  sampler objects would stay bound across non-Iris draws in the batch. Mod shaders that use `Sampler3+` on the same
+  units would then sample with Iris' filtering and wrap settings. Making it exact would need tracking, on every draw
+  entry point, of whether the current program is an Iris program that rebound its samplers. Vanilla
+  `ShaderInstance.apply` can also skip `glUseProgram` through `lastProgramId`. Too fragile for 0.2%.
+* **Caching `AbstractTexture.setFilter`** (the TextureStateShard setup calls Veil's DSA `glTextureParameteri` twice per
+  draw, 0.27%). `NativeImage.upload` sets the MIN/MAG filter with a raw `GlStateManager._texParameter` on the bound
+  texture: every tick for atlas animation uploads, and for dynamic textures. Iris PBR, mipmap code and other mods also
+  write texture parameters directly. A per-texture "last filter" cache cannot be kept exact, and a wrong filter is
+  visible as blurry or pixelated textures.
+* **Deduplicating `glGenerateTextureMipmap`** (0.43%). With Solas' default options, mipmaps are generated before
+  composite3 (colortex0), composite13 (colortex0) and composite15 (colortex1). Composite3 and composite14 rewrite those
+  textures first, so none of the three is redundant. Only with `DOF` enabled would composite14's colortex0 mipmap repeat
+  composite13's. Proving that nothing wrote the texture in between would also mean tracking compute image stores.
+* **Iris sampler and texture-unit rebinds** (`SamplerBinding.updateSampler` 0.18%, Iris `TextureTracker` unit-0 bind
+  0.15%). Same reason as in round 1: texture units are shared with raw GL users.
+* **Uniform dedup for vanilla (non-Iris) `ShaderInstance.apply`** (0.16%). Vanilla programs are shared with mods that
+  write uniform locations themselves (Veil wrappers, the Immersive Portals clipping uniform, ...).
+* **Veil's `setDefaultUniforms` TAIL hook** (0.29%): 8 `getUniform` lookups per draw, and on ExtendedShader each one
+  builds an `"iris_" + name` string. This is Veil's code and most of the gain would come from the lookups. It belongs
+  in a compat patch if anyone wants it.
+* **`FullyBufferedMultiBufferSource.getTargetClearTime` -> `getAllocatedSize`** (0.22%). Once per batch it adds up the
+  capacity of every buffer, only to pick a buffer-retention time from 1 GiB / 5 GiB thresholds. It would be cheap to
+  cache. However, the spark Java sampler is safepoint-biased and the loop is tiny, so the real cost is uncertain.
+* **Composite passes** (`CompositeRenderer.renderAll` 2.46%). What is left is real work: full-screen draws 0.48,
+  mipmaps 0.43, compute dispatches, custom uniforms (round 1) and per-pass FBO binds 0.37 (every pass targets a
+  different FBO).
+* **ClearPass / beginLevelRendering**: these are real binds and clears per target. For `CustomUniforms.update`, see
+  round 1.

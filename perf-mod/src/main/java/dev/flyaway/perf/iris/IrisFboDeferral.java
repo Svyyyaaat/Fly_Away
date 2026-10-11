@@ -40,7 +40,8 @@ public final class IrisFboDeferral {
 
     // ---- optional statistics (config key iris.debugStats=true), logged every 10 s ----
     public static final boolean STATS = PerfConfig.getBool("iris.debugStats", false);
-    public static long statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform;
+    public static long statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform,
+            statSkippedVanillaUniform, statUploadedVanillaUniform;
     private static long statNextLog;
 
     private IrisFboDeferral() {}
@@ -70,9 +71,12 @@ public final class IrisFboDeferral {
         if (now < statNextLog) return;
         statNextLog = now + 10_000_000_000L;
         FlyAwayPerf.LOGGER.info("[iris] last 10s: main rebinds deferred={} executed={} gbuffer rebinds skipped={}, "
-                        + "glUseProgram skipped={}, custom uniform pushes skipped={} done={}",
-                statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform);
+                        + "glUseProgram skipped={}, custom uniform pushes skipped={} done={}, "
+                        + "ExtendedShader vanilla uniform uploads skipped={} done={}",
+                statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform,
+                statSkippedVanillaUniform, statUploadedVanillaUniform);
         statDeferred = statFlushed = statSkippedRebind = statSkippedProgram = statSkippedUniform = statPushedUniform = 0;
+        statSkippedVanillaUniform = statUploadedVanillaUniform = 0;
     }
 
     /**

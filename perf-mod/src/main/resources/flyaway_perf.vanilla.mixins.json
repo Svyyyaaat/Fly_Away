@@ -16,6 +16,8 @@
     "entity.MinecraftFrameStampMixin",
     "iris.GlStateManagerFboDeferMixin",
     "iris.GlStateManagerProgramDedupMixin",
+    "iris.ShaderInstanceSamplerNamesMixin",
+    "iris.UniformUploadDedupMixin",
     "iris.VertexBufferDeferFlushMixin",
     "portals.GameRendererFrameScopeMixin"
   ]
