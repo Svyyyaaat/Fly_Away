@@ -12,6 +12,9 @@
     "CachedUniformVersionMixin",
     "CustomUniformsPushDedupMixin",
     "ExtendedShaderLazyRebindMixin",
-    "IrisBatchFboScopeMixin"
+    "ExtendedShaderUniformDedupMixin",
+    "IrisBatchFboScopeMixin",
+    "ProgramUniformsBuilderAccessor",
+    "SegmentedBufferBuilderEmptyMixin"
   ]
 }
