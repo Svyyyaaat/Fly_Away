@@ -1,0 +1,60 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = mod_version
+group = 'dev.flyaway.perf'
+base { archivesName = 'flyaway_perf' }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+    mods {
+        "${mod_id}" { sourceSet(sourceSets.main) }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Compile against the exact mod jars shipped in the pack (../mods) plus their nested jar-in-jar
+// libraries (extracted by tools/extract-nested.sh into build/nested). Nothing here is bundled.
+def packMods = fileTree(dir: "${rootDir}/../mods", include: '*.jar')
+def nestedLibs = fileTree(dir: "${buildDir}/nested", include: '**/*.jar')
+
+dependencies {
+    compileOnly packMods
+    compileOnly nestedLibs
+}
+
+tasks.register('extractNested', Exec) {
+    commandLine 'bash', "${rootDir}/tools/extract-nested.sh", "${rootDir}/../mods", "${buildDir}/nested"
+    outputs.dir("${buildDir}/nested")
+    inputs.files(packMods)
+}
+tasks.named('compileJava') { dependsOn 'extractNested' }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:-options'
+}
+
+var generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    var replaceProperties = [mod_id: mod_id, mod_version: mod_version, neo_version: neo_version, minecraft_version: minecraft_version]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+// Copy the built jar into the pack's mods folder.
+tasks.register('installToPack', Copy) {
+    dependsOn 'jar'
+    from(tasks.jar.archiveFile)
+    into "${rootDir}/../mods"
+}
