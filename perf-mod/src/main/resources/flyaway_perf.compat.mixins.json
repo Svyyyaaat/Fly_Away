@@ -16,6 +16,7 @@
     "aaa_particles.EffekseerManagerPlayTrackMixin",
     "colorwheel.ClrwlEngineAccessor",
     "colorwheel.ClrwlIndirectDrawManagerAccessor",
-    "colorwheel.ClrwlSkipEmptyTranslucentMixin"
+    "colorwheel.ClrwlSkipEmptyTranslucentMixin",
+    "ponder.PlacementClientItemMatchCacheMixin"
   ]
 }
