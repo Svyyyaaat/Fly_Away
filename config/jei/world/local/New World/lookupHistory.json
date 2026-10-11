@@ -1,0 +1,4 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"simplyswords:dawnquiver","components":"{\"simplyswords:awakening\":8,\"simplyswords:gem_power\":{has_nether_power:1b,has_runic_power:1b,nether_power:\"simplyswords:empty_power\",runic_power:\"simplyswords:empty_power\"},\"simplyswords:weapon_implicit\":{implicit_id:\"simplyswords:claymore_deflect\",value:15,weapon_type:\"simplyswords:claymore\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

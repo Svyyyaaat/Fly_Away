@@ -1,0 +1,17 @@
+filename = 'epictaczcompat_1.21.1_0.6.0.jar'
+name = 'Epic Fight × TacZ First-Person Compat'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = 'epictaczcompat_1.21.1_0.6.0.jar'
+
+[download]
+hash = 'd0a656d7ad0a72776750733b98646d035ac984b1'
+hash-format = 'sha1'
+mode = 'metadata:curseforge'
+url = ''
+
+[update.curseforge]
+file-id = 8759254
+project-id = 1544620

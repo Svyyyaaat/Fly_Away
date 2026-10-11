@@ -1,0 +1,20 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"super_golem:golem_heart"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"create:transmitter"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:attachment","components":"{\"minecraft:custom_data\":{AttachmentId:\"create_armorer:extended_mag_ca_3\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:attachment","components":"{\"minecraft:custom_data\":{AttachmentId:\"tacz:ammo_mod_hp\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:attachment","components":"{\"minecraft:custom_data\":{AttachmentId:\"tacz:ammo_mod_i\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:attachment","components":"{\"minecraft:custom_data\":{AttachmentId:\"tacz:ammo_mod_fmj\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:attachment","components":"{\"minecraft:custom_data\":{AttachmentId:\"tacz:ammo_mod_he\"}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:modern_kinetic_gun","components":"{\"minecraft:custom_data\":{GunCurrentAmmoCount:4,GunFireMode:\"AUTO\",GunId:\"create_armorer:smg_auto_crank\",HasBulletInBarrel:1b}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:modern_kinetic_gun","components":"{\"minecraft:custom_data\":{GunCurrentAmmoCount:1,GunFireMode:\"SEMI\",GunId:\"create_armorer:cannon_40mm_salamander\",HasBulletInBarrel:1b}}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:ammo","components":"{\"minecraft:custom_data\":{AmmoId:\"create_armorer:40mmhe\"},\"minecraft:max_stack_size\":12}"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"createimmersivetacz:40mmhe_casing"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"minecraft:gunpowder"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"createimmersivetacz:gunpowder_fluid"},"type":"fluid_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"createimmersivetacz:primer"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"createimmersivetacz:gun_trigger"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"createimmersivetacz:firing_mechanism"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"tacz:modern_kinetic_gun","components":"{\"irons_spellbooks:spell_container\":{data:[{id:\"irons_spellbooks:lightning_bolt\",index:0,level:2}],maxSpells:1,mustEquip:0b,spellWheel:1b},\"minecraft:custom_data\":{GunCurrentAmmoCount:4,GunFireMode:\"SEMI\",GunId:\"tacz:spas_12\",HasBulletInBarrel:1b}}"},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

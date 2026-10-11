@@ -1,0 +1,17 @@
+filename = 'reliquary-1.21.1-2.0.80.1570.jar'
+name = 'Reliquary Reincarnations'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.21.1-2.0.80.1570'
+
+[download]
+hash = 'fb3946dab831ac6aae0e6205a59c3eda6bdfeeb074c09b9801b51f099113bff6d43d02eccb2f0d04e25c11921276b6bc6363f785e3dd978cd1efc3f76cdd30b2'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/fQO83PId/versions/kOKl8h6O/reliquary-1.21.1-2.0.80.1570.jar'
+
+[update.modrinth]
+mod-id = 'fQO83PId'
+version = 'kOKl8h6O'

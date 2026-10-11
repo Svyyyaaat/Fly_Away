@@ -1,0 +1,17 @@
+filename = 'Sparkweave-NeoForge-0.510.0.jar'
+name = 'Sparkweave Engine'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'beta'
+x-prismlauncher-version-number = '0.510.0+NeoForge'
+
+[download]
+hash = 'be43de58ad508ec1d658f146b820d1dee19f64097fdd19eb77b97002931f162b5961781ba4fd6245bc6b3c630fa7c904ae6c602d66adedaf61fd4d7719a0ade9'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/nf68xfAw/versions/j8reYKe3/Sparkweave-NeoForge-0.510.0.jar'
+
+[update.modrinth]
+mod-id = 'nf68xfAw'
+version = 'j8reYKe3'

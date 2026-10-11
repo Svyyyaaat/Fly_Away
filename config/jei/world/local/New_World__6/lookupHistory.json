@@ -1,0 +1,5 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"avaritia:enhancement_core"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"avaritia:infinity_totem"},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

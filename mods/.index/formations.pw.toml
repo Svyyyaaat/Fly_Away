@@ -1,0 +1,17 @@
+filename = 'formations-1.0.4-neoforge-mc1.21.jar'
+name = 'Formations (Structure Library)'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21', '1.21', '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.0.4-neoforge-mc1.21'
+
+[download]
+hash = '09fd3bcb9b7d63f18a89693e4bd84548fa15761a60214e3e2f010c680c06914e92794661d1887746c9b4dfa1907d21533738ecda8557abf5801774f4875fc77f'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/tPe4xnPd/versions/ybUmDE8h/formations-1.0.4-neoforge-mc1.21.jar'
+
+[update.modrinth]
+mod-id = 'tPe4xnPd'
+version = 'ybUmDE8h'

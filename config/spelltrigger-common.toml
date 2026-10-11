@@ -1,0 +1,9 @@
+[gunSpells]
+	#Allow extracting an inscribed spell from a gun as a scroll at the inscription table.
+	allowGunScrollExtraction = false
+	#Allow tamed TaCZ gun users, such as Touhou Little Maid maids, to cast using their online owner's spell resources.
+	allowTamedGunCasting = true
+	#Allow gun-triggered spells to ignore existing cooldowns and avoid adding new cooldowns.
+	ignoreCooldown = false
+	#Allow gun-triggered spells to cast without consuming or requiring mana.
+	ignoreManaCost = false

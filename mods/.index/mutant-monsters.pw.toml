@@ -1,0 +1,17 @@
+filename = 'MutantMonsters-v21.1.1-1.21.1-NeoForge.jar'
+name = 'Mutant Monsters'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = 'v21.1.1-1.21.1-NeoForge'
+
+[download]
+hash = '4d969c457a01e49a242ebc03112031bd338be08fc4ab36540b222b0a64e72a778a6534ad2be7c5cf72a5a74e1ce58e66e2999957f68c189c868dbc48bef44708'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/derP0ten/versions/dauEcrnZ/MutantMonsters-v21.1.1-1.21.1-NeoForge.jar'
+
+[update.modrinth]
+mod-id = 'derP0ten'
+version = 'dauEcrnZ'

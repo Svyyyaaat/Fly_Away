@@ -1,0 +1,17 @@
+filename = 'XaeroPlus-2.36.3+neoforge-1.21.1-WM1.46.0-MM26.5.0.jar'
+name = 'XaeroPlus'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21', '1.21', '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '2.36.3+neoforge-1.21.1'
+
+[download]
+hash = 'b300b40fa60ee1913d668fb5e8b4ade953ab59af01cfd6deebfca120a089d438024cce919bb492026d31922a1e3af41453c4d351d1234868c1589a7f653e38c5'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/EnPUzSTg/versions/gd28Vx7e/XaeroPlus-2.36.3%2Bneoforge-1.21.1-WM1.46.0-MM26.5.0.jar'
+
+[update.modrinth]
+mod-id = 'EnPUzSTg'
+version = 'gd28Vx7e'

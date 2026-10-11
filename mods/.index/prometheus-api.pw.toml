@@ -1,0 +1,17 @@
+filename = 'prometheus-neoforge-1.21-1.2.5.jar'
+name = 'Prometheus'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21', '1.21', '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.2.5'
+
+[download]
+hash = 'de0b30d721386194272c46940a56786b975531e6b6a3d07bf778612c495d2eb92167cbb714f369b7c62ceadb42387927c1d0c6c44d96806c059bd8ae16f781ba'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/7Z7a9JyH/versions/sGtURzAz/prometheus-neoforge-1.21-1.2.5.jar'
+
+[update.modrinth]
+mod-id = '7Z7a9JyH'
+version = 'sGtURzAz'

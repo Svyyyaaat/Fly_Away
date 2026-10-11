@@ -1,0 +1,17 @@
+filename = 'HopoBetterRuinedPortals-[1.21.1-1.21.3]-1.4.4b.jar'
+name = 'Hopo Better Ruined Portals'
+side = 'server'
+x-prismlauncher-loaders = [ 'neoforge', 'forge', 'fabric' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1', '1.21.2', '1.21.2', '1.21.3', '1.21.3' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.4.4b'
+
+[download]
+hash = '5c19550c0d26490b329bf2fe0448dcac39e7a69954f80b7f6158472a4f9d4fffb20e0e71306ad222b18c8a9ba2444bd756df251f2e643a939a48ba4e826e561d'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/hIpLSyga/versions/JosVVZQn/HopoBetterRuinedPortals-%5B1.21.1-1.21.3%5D-1.4.4b.jar'
+
+[update.modrinth]
+mod-id = 'hIpLSyga'
+version = 'JosVVZQn'

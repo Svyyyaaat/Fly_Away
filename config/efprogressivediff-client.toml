@@ -1,0 +1,10 @@
+#Set to true to always show difficulty bar
+showHud = false
+#Distance from the left of the window
+# Default: 20
+# Range: > 0
+posX = 20
+#Distance from the bottom of the window
+# Default: 30
+# Range: > 0
+posY = 30

@@ -1,0 +1,17 @@
+filename = 'veil-neoforge-1.21.1-4.5.1.jar'
+name = 'Veil'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '4.5.1'
+
+[download]
+hash = '64702ac4c557da4244b2a9aaa7ba461743a47abb7dd1b9d4c77ef1cb3a6b74544f07c5c49e650a32332c8b407d24facdd4da4c0f5d83b807e5c8aa74ef48a8b2'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/3KUWeVhG/versions/aVvFKGJZ/veil-neoforge-1.21.1-4.5.1.jar'
+
+[update.modrinth]
+mod-id = '3KUWeVhG'
+version = 'aVvFKGJZ'

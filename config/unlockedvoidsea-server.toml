@@ -1,0 +1,30 @@
+#List of dimensions to enable the void sea in. Add as many [[dimension]] blocks as you want;
+#each one has its own dimension id, startY, depthGradient, drag, and priority.
+#Example:
+#  [[dimension]]
+#  dimension = "minecraft:overworld"
+#  startY = -40.0
+#  depthGradient = 1.0
+#  drag = 1.0
+#  priority = 1000
+[[dimension]]
+	dimension = "minecraft:overworld"
+	startY = -40.0
+	depthGradient = 1.0
+	drag = 1.0
+	priority = 1000
+#List of dimensions to enable the void sea in. Add as many [[dimension]] blocks as you want;
+#each one has its own dimension id, startY, depthGradient, drag, and priority.
+#Example:
+#  [[dimension]]
+#  dimension = "minecraft:overworld"
+#  startY = -40.0
+#  depthGradient = 1.0
+#  drag = 1.0
+#  priority = 1000
+[[dimension]]
+	dimension = "minecraft:the_nether"
+	startY = 0.0
+	depthGradient = 1.0
+	drag = 1.0
+	priority = 1000

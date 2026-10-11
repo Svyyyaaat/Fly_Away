@@ -1,0 +1,17 @@
+filename = 'MoAnimals-neoforge-1.21.1-0.2.0-SNAPSHOT1.jar'
+name = 'More Animals'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'alpha'
+x-prismlauncher-version-number = '0.2.0-SNAPSHOT1'
+
+[download]
+hash = '11bb81b2c67effd7fdf42dda9c1ada8425f1a093473c9a6a67caf26cf3533e23d58740d4865e972b9542310f3c6bbcb56c028c1e23e2600182d1bd71386f750f'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/QQAM7AG8/versions/eVd5Q8eH/MoAnimals-neoforge-1.21.1-0.2.0-SNAPSHOT1.jar'
+
+[update.modrinth]
+mod-id = 'QQAM7AG8'
+version = 'eVd5Q8eH'

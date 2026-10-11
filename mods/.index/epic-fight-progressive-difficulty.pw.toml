@@ -1,0 +1,17 @@
+filename = 'efprogressivediff-1.2.2.jar'
+name = 'Epic Fight Progressive Difficulty'
+side = 'server'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.2.2'
+
+[download]
+hash = '71b912c7919be809f90e961f8284da6989cd75a5e006bc60c91f2667dd88e6ed8fce480554868b6891e62020c78e6a501a5f0641777a9495297361be1891e7d1'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/7IrEY7fQ/versions/cNTfOspF/efprogressivediff-1.2.2.jar'
+
+[update.modrinth]
+mod-id = '7IrEY7fQ'
+version = 'cNTfOspF'

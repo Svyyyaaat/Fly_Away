@@ -1,0 +1,62 @@
+#Awakened Mobs settings
+[general]
+	#Chance that a zombie or skeleton spawns holding an Epic Fight melee weapon (1.0 = always).
+	# Default: 0.5
+	# Range: 0.0 ~ 1.0
+	weaponChance = 0.5
+	#Per-slot chance (helmet, chestplate, leggings, boots) that armor is equipped.
+	# Default: 0.5
+	# Range: 0.0 ~ 1.0
+	armorChance = 0.5
+	#Chance that a mob spawns as a runner that chases at sprinting-player speed.
+	# Default: 0.13
+	# Range: 0.0 ~ 1.0
+	runnerChance = 0.13
+	#Movement-speed bonus applied to a runner (0.3 = +30%, roughly a sprinting player).
+	# Default: 0.3
+	# Range: 0.0 ~ 5.0
+	runnerSpeedBonus = 0.3
+
+#How weapon-holding mobs react to a player's melee hit. Parry is rolled first, then guard. Only mobs holding a sword or axe can defend.
+[defense]
+	#Chance a melee hit is parried: damage fully negated and the player is knocked back and briefly slowed.
+	# Default: 0.1
+	# Range: 0.0 ~ 1.0
+	parryChance = 0.1
+	#Chance that, just after being hit, a mob raises a guard stance.
+	# Default: 0.25
+	# Range: 0.0 ~ 1.0
+	guardChance = 0.25
+	#How long the guard stance is held once raised (20 = 1 second, 60 = 3 seconds).
+	# Default: 60
+	# Range: 1 ~ 1200
+	guardDurationTicks = 60
+	#Fraction of damage removed while guarding (0.5 = half damage, 1.0 = full block).
+	# Default: 0.5
+	# Range: 0.0 ~ 1.0
+	guardReduction = 0.5
+	#Ticks before the same mob can guard/parry again (20 = 1 second).
+	# Default: 30
+	# Range: 0 ~ 1200
+	defenseCooldownTicks = 30
+
+#Relative weights for which material tier a weapon/armor rolls. Higher = more common.
+[tier_weights]
+	# Default: 35
+	# Range: 0 ~ 10000
+	wood = 35
+	# Default: 25
+	# Range: 0 ~ 10000
+	stone = 25
+	# Default: 20
+	# Range: 0 ~ 10000
+	iron = 20
+	# Default: 8
+	# Range: 0 ~ 10000
+	gold = 8
+	# Default: 8
+	# Range: 0 ~ 10000
+	diamond = 8
+	# Default: 4
+	# Range: 0 ~ 10000
+	netherite = 4

@@ -1,0 +1,17 @@
+filename = 'NightFall-1.21.1-Neoforge-3.4.0.jar'
+name = 'EpicFight-Nightfall'
+side = 'server'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = 'NightFall-1.21.1-Neoforge-3.4.0.jar'
+
+[download]
+hash = '3acba4a360830bd06c09c58a6502796189f82618'
+hash-format = 'sha1'
+mode = 'metadata:curseforge'
+url = ''
+
+[update.curseforge]
+file-id = 8573921
+project-id = 1307848

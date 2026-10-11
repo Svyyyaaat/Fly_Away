@@ -1,0 +1,17 @@
+filename = 'mysterious_mountain_lib-1.2.15-1.21.1.jar'
+name = 'Mysterious Mountain Lib'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.2.15-1.21.1'
+
+[download]
+hash = '5fb321cd41dcd9d774b9c519beb7811410b92663e34551366fd75a38caf686ffb6a0ddfbe2e0cba53e0593c052ee96d1b5bf7e4675e65fa83dfe4bdb802e2cd3'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/ntMyNH8c/versions/o49zOLis/mysterious_mountain_lib-1.2.15-1.21.1.jar'
+
+[update.modrinth]
+mod-id = 'ntMyNH8c'
+version = 'o49zOLis'

@@ -1,0 +1,5 @@
+#Remove every Gun Smith Table / workbench recipe (guns, ammo and attachments from TaCZ
+#and from any gun pack), so guns can only be made through the Create recipes.
+blockGunSmithTableRecipes = true
+#Also remove the crafting recipes for the Gun Smith Table and the TaCZ workbenches themselves.
+blockWorkbenchCrafting = true

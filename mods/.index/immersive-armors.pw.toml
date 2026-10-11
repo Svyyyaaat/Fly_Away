@@ -1,0 +1,17 @@
+filename = 'immersive_armors-1.7.6+1.21.1-neoforge.jar'
+name = 'Immersive Armors'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.7.6+1.21.1'
+
+[download]
+hash = '875852a2d6710c1b4da43026b345154b41751e4c1f987c7a19614c5f195a4d68ebbd93811da9868db83bf245aca2d15a35432b66730c17531f5e7006882a5d95'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/eE2Db4YU/versions/B2YtQYCh/immersive_armors-1.7.6%2B1.21.1-neoforge.jar'
+
+[update.modrinth]
+mod-id = 'eE2Db4YU'
+version = 'B2YtQYCh'

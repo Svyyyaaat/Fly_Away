@@ -1,0 +1,11 @@
+#Overhead Preset
+[camera]
+	#Vertical offset (blocks) for the OVERHEAD shoulder cycle preset.
+	# Default: 1.2
+	# Range: -2.0 ~ 4.0
+	cameraOverheadOffsetY = 1.2
+	#If true, suppresses SSR's idle camera auto-rotation toward player facing.
+	disableFollowPlayerRotations = true
+	#Idle yaw mode: VANILLA_3RD_PERSON, DECOUPLED, or SSR_DEFAULT.
+	#Allowed Values: VANILLA_3RD_PERSON, DECOUPLED, SSR_DEFAULT
+	idleBehavior = "DECOUPLED"

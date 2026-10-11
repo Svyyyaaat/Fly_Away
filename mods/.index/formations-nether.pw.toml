@@ -1,0 +1,52 @@
+filename = 'formationsnether-1.0.5b-mc1.21+.jar'
+name = 'Formations Nether'
+side = 'server'
+x-prismlauncher-loaders = [ 'neoforge', 'forge', 'quilt', 'fabric' ]
+x-prismlauncher-mc-versions = [
+    '1.21',
+    '1.21',
+    '1.21.1',
+    '1.21.1',
+    '1.21.10',
+    '1.21.10',
+    '1.21.11',
+    '1.21.11',
+    '1.21.2',
+    '1.21.2',
+    '1.21.3',
+    '1.21.3',
+    '1.21.4',
+    '1.21.4',
+    '1.21.5',
+    '1.21.5',
+    '1.21.6',
+    '1.21.6',
+    '1.21.7',
+    '1.21.7',
+    '1.21.8',
+    '1.21.8',
+    '1.21.9',
+    '1.21.9',
+    '26.1',
+    '26.1',
+    '26.1.1',
+    '26.1.1',
+    '26.1.2',
+    '26.1.2',
+    '26.2',
+    '26.2',
+    '26.3',
+    '26.3'
+]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.0.5b-mc1.21+'
+
+[download]
+hash = '4f551944809f6efdf0c09eea78b8b7dcfaba75fea2b07aa84598eab961260984524c2bb7abca9778e878378d3d6f3883448e49f04230966fe32b9a60065fa88f'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/cGvQGRls/versions/Z3DsEJun/formationsnether-1.0.5b-mc1.21%2B.jar'
+
+[update.modrinth]
+mod-id = 'cGvQGRls'
+version = 'Z3DsEJun'

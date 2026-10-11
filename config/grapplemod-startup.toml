@@ -1,0 +1,9 @@
+#Options for grappling hooks
+[grapplinghook]
+
+	#More config options for grappling hooks
+	[grapplinghook.other]
+		#Durability for the grappling hook item
+		# Default: 500
+		# Range: > 0
+		default_durability = 500

@@ -1,0 +1,17 @@
+filename = 'reliquified_artifacts-1.21.1-1.0.8.jar'
+name = 'reliquified_artifacts'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'beta'
+x-prismlauncher-version-number = '1.0.8'
+
+[download]
+hash = '2885b9f4c262f10c9500d9525cd4f82174a462348c4b946627d21a97303469de302c4a487066313a4904d3abb46a7a3433e0deb9855b6d04112a967b1ce947a1'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/GnU07giL/versions/x2qoJkgq/reliquified_artifacts-1.21.1-1.0.8.jar'
+
+[update.modrinth]
+mod-id = 'GnU07giL'
+version = 'x2qoJkgq'

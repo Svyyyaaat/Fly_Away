@@ -1,0 +1,17 @@
+filename = 'wandering_ribbit-3.0.0-neoforge-1.21.1.jar'
+name = 'Wandering Ribbit'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '3.0.0'
+
+[download]
+hash = '9a5f3c8b13a4613a5a8789e643aaa6d0770fa532a892db2704d64c965329953c67e3aa3299507cb478c9627338326bd38c37c1aa32f8a974c5643243e899fe21'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/qYSYk2ef/versions/bApJTSYs/wandering_ribbit-3.0.0-neoforge-1.21.1.jar'
+
+[update.modrinth]
+mod-id = 'qYSYk2ef'
+version = 'bApJTSYs'

@@ -1,0 +1,4 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"simplyswords:brimstone_claymore","components":{"simplyswords:gem_power":{"has_runic_power":false,"has_nether_power":false,"runic_power":"simplyswords:empty_power","nether_power":"simplyswords:empty_power"}}},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

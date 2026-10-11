@@ -1,0 +1,4 @@
+enable_teleport_eye = true
+# Default: 600
+# Range: > 0
+teleport_eye_cooldown = 600

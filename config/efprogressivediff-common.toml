@@ -1,0 +1,120 @@
+#General settings
+[General]
+
+	#Settings related to difficulty calculation and increments.
+	[General.Difficulty]
+		# Default: 100.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		maxDifficultyCap = 100.0
+		#The amount of difficulty added per tick. This is the main way difficulty increases, and is applied when the player is active.
+		# Default: 8.3E-4
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		difficultyIncrement = 8.3E-4
+		#The amount of difficulty added per tick when the player is AFK. This is applied when the player is idle for more than afkTime seconds.
+		# Default: 8.3E-5
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		afkIncrement = 8.3E-5
+		#The amount of idle time in seconds before a player is considered AFK.
+		# Default: 120
+		# Range: > 1
+		afkTime = 120
+		#The amount of difficulty added when the player wakes up from sleep.
+		# Default: 0.0
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		wakeUpIncrement = 0.0
+		#The amount of difficulty added when the player respawns. Can be negative to reduce difficulty on death.
+		# Default: -2.5
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		respawnIncrement = -2.5
+		#The amount of difficulty added when the player kills a hostile mob.
+		# Default: 0.003
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		hostileIncrement = 0.003
+		#The amount of difficulty added when the player kills a neutral mob.
+		# Default: 0.0
+		# Range: -1.7976931348623157E308 ~ 1.7976931348623157E308
+		neutralIncrement = 0.0
+
+	#Settings related to difficulty bonuses based on player grouping and dimension.
+	[General."Difficulty Bonus"]
+		#The experience multiplier per difficulty point. Formula for dropped exp: base_exp * (1 + difficulty * exp_bonus).
+		# Default: 0.005
+		# Range: 0.0 ~ 1.7976931348623157E308
+		expBonus = 0.005
+		#Additional difficulty multiplier based on the number of nearby players. For example, a value of 0.1 means each additional player increases the average difficulty by 10%.
+		# Default: 0.05
+		# Range: 0.0 ~ 1.7976931348623157E308
+		groupBonus = 0.05
+		#The radius around the newly spawned mob (in blocks) to check for nearby players for the group bonus.
+		# Default: 128
+		# Range: > 0
+		groupRadius = 128
+		#Additional difficulty multiplier for being in the Overworld. For example, a value of 0.1 means the difficulty is increased by 10% in the Overworld.
+		# Default: 0.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		overworldBonus = 0.0
+		#Additional difficulty multiplier for being in the Nether. For example, a value of 0.1 means the difficulty is increased by 10% in the Nether.
+		# Default: 0.5
+		# Range: 0.0 ~ 1.7976931348623157E308
+		netherBonus = 0.5
+		#Additional difficulty multiplier for being in The End. For example, a value of 0.15 means the difficulty is increased by 15% in The End.
+		# Default: 1.25
+		# Range: 0.0 ~ 1.7976931348623157E308
+		theendBonus = 1.25
+		#Additional difficulty multiplier for being in other dimensions (modded dimensions). For example, a value of 0.1 means the difficulty is increased by 10% in other dimensions.
+		# Default: 0.1
+		# Range: 0.0 ~ 1.7976931348623157E308
+		otherBonus = 0.1
+
+#Final attribute value = Original Attribute Value + Base Value * (1 + multiply * difficulty)
+[Attribute]
+
+	[Attribute.Weight]
+		#Base value added to weight at difficulty 0.
+		# Default: 10.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		weightBaseValue = 10.0
+		#How much the added weight increases per difficulty. For example, a value of 0.05 means the added weight increases by 5% per difficulty.
+		# Default: 0.1
+		# Range: 0.0 ~ 1.0
+		weightMultiply = 0.1
+
+	[Attribute.Impact]
+		#Base value added to impact at difficulty 0.
+		# Default: 1.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		impactBaseValue = 1.0
+		#How much the added impact increases per difficulty. For example, a value of 0.05 means the added impact increases by 5% per difficulty.
+		# Default: 0.35
+		# Range: 0.0 ~ 1.0
+		impactMultiply = 0.35
+
+	[Attribute."Stun Armor"]
+		#Base value added to stun armor at difficulty 0.
+		# Default: 3.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		stunArmorBaseValue = 3.0
+		#How much the added stun armor increases per difficulty. For example, a value of 0.05 means the added stun armor increases by 5% per difficulty.
+		# Default: 0.3
+		# Range: 0.0 ~ 1.0
+		stunArmorMultiply = 0.3
+
+	[Attribute."Armor Negation"]
+		#Base value added to armor negation at difficulty 0.
+		# Default: 5.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		armorNegationBaseValue = 5.0
+		#How much the added armor negation increases per difficulty. For example, a value of 0.05 means the added armor negation increases by 5% per difficulty.
+		# Default: 0.05
+		# Range: 0.0 ~ 1.0
+		armorNegationMultiply = 0.05
+
+	[Attribute."Max Strikes"]
+		#Base value added to max strikes at difficulty 0.
+		# Default: 1.0
+		# Range: 0.0 ~ 1.7976931348623157E308
+		maxStrikesBaseValue = 1.0
+		#How much the added max strikes increases per difficulty. For example, a value of 0.03 means the added max strikes increases by 3% per difficulty.
+		# Default: 0.3
+		# Range: 0.0 ~ 1.0
+		maxStrikesMultiply = 0.3

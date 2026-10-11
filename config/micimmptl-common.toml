@@ -1,0 +1,73 @@
+#How the parts of a vehicle that pass BESIDE a portal frame (an L-shaped hull's arm) behave
+#while the vehicle straddles the portal.
+#STAY_REAL: the arm exists only where the vehicle really is - visible whole and solid there,
+#  not shown beside the far frame at all; it crosses in the instant the vehicle does.
+#SPLIT_AT_PLANE: the portal plane splits everything as if the doorway were infinite - the
+#  beyond-plane part (arm included) is drawn and standable at the far frame instead.
+#Both are self-consistent (seen = solid); on a server, set all sides the same.
+#Allowed Values: STAY_REAL, SPLIT_AT_PLANE
+straddleSideArms = "STAY_REAL"
+#Slow mouse look down while CinematicZoom is zoomed in, in proportion to the zoom.
+#Zooming shrinks the field of view but nothing scales the mouse, so vanilla turns the same
+#number of degrees per pixel however far you are zoomed - at 10x that is ten times as much
+#of what you can see per flick, which is why aiming while zoomed feels twitchy. CinematicZoom
+#has no setting of its own for this (its cinematic-camera option is mouse SMOOTHING, a
+#different thing). Does nothing when not zoomed, and nothing if CinematicZoom is absent.
+scaleLookWithZoom = true
+#How completely the slow-down follows the zoom. 1.0 = fully proportional (10x zoom turns at
+#a tenth speed), which keeps the apparent speed on screen identical to unzoomed. Lower values
+#keep some of the extra speed: 0.5 is a half-way compromise, 0.0 disables the effect.
+#Only used when scaleLookWithZoom is true.
+# Default: 1.0
+# Range: 0.0 ~ 1.0
+zoomLookStrength = 1.0
+#Turn off view bobbing while CinematicZoom is zoomed in.
+#Bobbing swings the camera by a fixed number of degrees, so zooming magnifies it just like
+#everything else - at high zoom a normal walk throws the view right across the visible field.
+#Only the bobbing is skipped, and only while zoomed; it returns the moment you zoom out.
+steadyZoomView = true
+#Fire NeoForge's dimension-change events for Immersive Portals crossings.
+#Immersive Portals reimplements the world change by hand instead of calling changeDimension, so
+#EntityTravelToDimensionEvent and PlayerEvent$PlayerChangedDimensionEvent never fire when you walk
+#through a portal. Mods that listen for them therefore skip work they were written to do - the
+#Aether's dimension title never shows, Iron's Spells never dismisses your summons or tears down a
+#cast in progress. Turning this on makes those events fire on portal crossings too.
+#Turn it OFF if a mod misbehaves after a portal trip: these events have never fired on this code
+#path before, so a listener somewhere may not expect it. Note that a player loitering in a portal
+#mouth genuinely crosses on every head-bob, so bursts of events there are expected, not a bug.
+bridgeDimensionChangeEvents = true
+#Tidy up vanilla portal state after an Immersive Portals crossing.
+#Immersive Portals never clears the entity's in-portal progress (which belongs to the dimension it
+#just left, and would otherwise be copied onto the re-created entity) and never sets a portal
+#cooldown. The cooldown is only applied when the block you actually arrive in is a real portal
+#block, which keeps Immersive Portals' free back-and-forth through its own portals intact while
+#stopping an arrival inside a legacy portal block from immediately teleporting you again.
+#Only meaningful when bridgeDimensionChangeEvents is on.
+portalStateHygiene = true
+#Immersive Portals ticks the whole client world seen THROUGH a nearby portal every client tick:
+#vanilla's random block animations (667 random blocks around the portal's far side) plus that
+#world's entire particle engine. With a Nether portal in view that was half of every frame in
+#CUS2 (Atmospherics' mist particles in the Nether blend biome settings per particle per tick).
+#This is how often those remote-world ambient ticks run: 1 = Immersive Portals' own behaviour
+#(every tick), 4 = every fourth tick (particles seen through the portal move at 5 Hz),
+#0 = never (no ambient particles or block animations inside portal views; everything real,
+#entities, blocks, light, still updates).
+# Default: 0
+# Range: 0 ~ 20
+remoteWorldAmbientTickInterval = 0
+#Let Atmospherics spawn its ambient mist / air-haze particles in worlds seen only through a
+#portal. Each of those particles re-blends the biome settings around it every tick, which is
+#the single most expensive thing a portal view can contain. Off = mist only in the world you
+#are actually in (the mist inside a portal view is barely visible anyway).
+remoteWorldMistParticles = false
+#With a shader pack active, draw Voxy's far (LOD) terrain inside portal views too. The portal world's
+#LOD renderer is bound to that world's own shader pipeline, which is what Immersive Portals renders
+#the view with. Off = portal views under shaders show only the near terrain (LODs still draw once
+#you are through). Without a shader pack LODs always draw inside portal views.
+voxyLodsInShaderPortalViews = true
+#Write this mod's diagnostic lines to the log: traces of vehicles crossing portals, lighting and
+#block-entity probes, portal-render audits. They exist for bug reports and can add several lines a
+#second while a vehicle is near a portal, so they are off by default. When reporting a problem, turn
+#this on, reproduce it, and attach the log. Warnings, errors and one line per vehicle crossing are
+#always logged. Applies without a restart.
+debugLogging = false

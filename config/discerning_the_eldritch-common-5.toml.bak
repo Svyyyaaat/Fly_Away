@@ -1,0 +1,49 @@
+#Defines whether or not mend flesh will heal on entity hit. Default is true
+"Mend flesh lifesteal" = true
+#Defines whether or not mend flesh will heal on XP gain. Default is true
+"Mend flesh exp gain" = true
+#Defines whether or not to enable the insanity system. Everytime an Eldritch spell is cast, it increases your insanity.
+#Default is false
+"Enable insanity system" = false
+#Defines the max value for insanity. At the max value, the insanity debuffs will be applied to the player.
+#Default is [15]
+"Max value for insanity" = 15
+#Defines whether or not to enable Abracadabra's damage cap abilities.
+#Default is true
+"Enable Abracadabra's damage cap" = true
+#Defines the base damage cap value for Abracadabra spell
+#Default is [80]
+"Base damage cap" = 80
+#Defines whether or not to enable Abracadabra's hex prevention abilities. This prevents the user from gaining negative potion effects.
+#Default is true
+"Enable Abracadabra's hex prevention" = true
+#Defines the cooldown in seconds value for the Pyrium Sheath's ability
+#Default is [5]
+"Pyrium Sheath CD" = 5
+#Defines the cooldown in seconds value for the Frostbourne Sheath's ability
+#Default is [5]
+"Frostbourne Sheath CD" = 5
+#Defines the cooldown in seconds value for the Sheath of The Razor's ability
+#Default is [10]
+"Sheath of The Razor CD" = 10
+#Defines the multiplier to be added when evaluating the damage from the razor blades
+#Math is: 2 + (base attack damage * (config value / 100))
+#Dividing by 100 gets the percentage of what the config value, so if you input 10, it will result in 0.10 aka 10%
+#Default is [10]
+"Sheath of The Razor Multiplier" = 10
+#Defines the multiplier for the Mourning Star's mortal damage decree
+#Default is [5.5F]
+"Mourning Star Damage Multiplier" = 5.5
+#Defines whether or not to enable Ascended One's damage cap.
+#Default is true
+"Enable Ascended One's damage cap" = true
+#Defines the max damage the Ascended One can take for the damage cap
+#Default is [100]
+"Base Ascended One damage cap" = 100
+#Defines whether or not to enable blood cultist aggression.
+#This means blood cultists will attack you on sight if your blood spell power is below 1.15x.
+#Default is false
+"Enable Blood Cultist aggression" = false
+#Defines whether or not to enable the Gaoler's walking screenshake.
+#Default is true
+"Enable Gaoler's walking screenshake" = true

@@ -1,0 +1,17 @@
+filename = 'ssrcamerafixes-neoforge-1.21.1-2.1.1.jar'
+name = 'Shoulder Surfing Reloaded: Camera Fixes & Additions'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = 'SSR Camera Fixes v2.1.1 (NeoForge)'
+
+[download]
+hash = 'ee5ed520da18205a67a7569da2b3878d17fbd6e5'
+hash-format = 'sha1'
+mode = 'metadata:curseforge'
+url = ''
+
+[update.curseforge]
+file-id = 8827465
+project-id = 1531224

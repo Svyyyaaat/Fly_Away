@@ -1,0 +1,17 @@
+filename = 'phatores-1.0.0-neoforge-1.21.1.jar'
+name = 'Phat Ores (Dense Ores)'
+side = 'both'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.0.0'
+
+[download]
+hash = 'effffea72d89c448693c5b7767b43069c05354dcfed63557eaab0aad57e0991075b5118b06e0ab90923f85fd91ff7cf108a05e17ad18b11666ec34d41d3eed13'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/ipjNjXR5/versions/RsmsRKxG/phatores-1.0.0-neoforge-1.21.1.jar'
+
+[update.modrinth]
+mod-id = 'ipjNjXR5'
+version = 'RsmsRKxG'

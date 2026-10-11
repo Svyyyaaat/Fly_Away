@@ -1,0 +1,17 @@
+filename = 'jeed-1.21-2.3.4-neoforge.jar'
+name = 'Just Enough Effects Descriptions'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.21-2.3.4'
+
+[download]
+hash = 'f25d1dac7f9b43ebdee50557c090aad37ab96b44288cb53b6d76d25994c7eacbc687fb815c59469d50958cb2188930a2cfd3c612e3be8b44123801a8e3b256cb'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/EO27GKs1/versions/Rm5m1ASj/jeed-1.21-2.3.4-neoforge.jar'
+
+[update.modrinth]
+mod-id = 'EO27GKs1'
+version = 'Rm5m1ASj'

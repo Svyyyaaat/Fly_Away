@@ -1,0 +1,17 @@
+filename = 'efweaponscompat-1.0.0.jar'
+name = 'Epic Fight Weapons Compat'
+side = 'server'
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.0.0'
+
+[download]
+hash = '9bc33963e4c85c800f71e246a80fd82ebe98c980a37b5ed0e95c500190eeddf512748f14afa69bc7842e3c9659216298f8461dbbd7cc64cdf5cae2e87c92dd8b'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/Udv3YbH7/versions/B3Ks3QHg/efweaponscompat-1.0.0.jar'
+
+[update.modrinth]
+mod-id = 'Udv3YbH7'
+version = 'B3Ks3QHg'

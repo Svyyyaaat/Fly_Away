@@ -1,0 +1,17 @@
+filename = 'tacz-neoforge-1.21.1-1.1.8-hotfix-r7.jar'
+name = 'Timeless & Classics Guns: Zero'
+side = ''
+x-prismlauncher-loaders = [ 'neoforge' ]
+x-prismlauncher-mc-versions = [ '1.21.1', '1.21.1' ]
+x-prismlauncher-release-type = 'release'
+x-prismlauncher-version-number = '1.1.8-hotfix-r7'
+
+[download]
+hash = '7700ed99a080729c3aa21f9619e018fbe9e2303cfbcaa463175ee5170553a000b692bc4cfa2e8ce0778747eed34dcc0197fb5e4344bb258cff1ba90adc842642'
+hash-format = 'sha512'
+mode = 'url'
+url = 'https://cdn.modrinth.com/data/OypNE65K/versions/62q6mB5Q/tacz-neoforge-1.21.1-1.1.8-hotfix-r7.jar'
+
+[update.modrinth]
+mod-id = 'OypNE65K'
+version = '62q6mB5Q'

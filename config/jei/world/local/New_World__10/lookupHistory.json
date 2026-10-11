@@ -1,0 +1,5 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"create:fluid_pipe"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"aeronautics:levitite"},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

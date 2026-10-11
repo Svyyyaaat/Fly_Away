@@ -1,0 +1,41 @@
+#Camera settings
+[camera]
+	#Tilt the camera while wallrunning (degrees)
+	# Default: 10.0
+	# Range: -1.0E9 ~ 1.0E9
+	wallrun_camera_tilt_degrees = 10.0
+	#Time it takes to tilt the camera when starting to wallrun (seconds)
+	# Default: 0.5
+	# Range: -1.0E9 ~ 1.0E9
+	wallrun_camera_animation_s = 0.5
+
+#Sound effect settings
+[sounds]
+	#Play wallrun footsteps at most every this many seconds
+	# Default: 0.35
+	# Range: -1.0E9 ~ 1.0E9
+	wallrun_sound_effect_time_s = 0.35
+	#Wallrunning footsteps volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	wallrun_sound_volume = 1.0
+	#Double jump volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	doublejump_sound_volume = 1.0
+	#Sliding volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	slide_sound_volume = 1.0
+	#Jump from wallrun volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	wallrunjump_sound_volume = 1.0
+	#Rocket volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	rocket_sound_volume = 1.0
+	#Ender staff volume (1=default)
+	# Default: 1.0
+	# Range: -1.0E9 ~ 1.0E9
+	enderstaff_sound_volume = 1.0

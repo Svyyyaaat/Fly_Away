@@ -1,0 +1,5 @@
+[WanderingRibbitSpawnConfig]
+	#If it's true, you can see when a wandering ribbit successfully spawns on the chat, but don't recommend that.
+	"Show Logs" = false
+	#This is the value that the mod gets to roll a chance to spawn a wandering ribbit, for example if is 1 this is 100% chance but if it's 2 is 50% chance because is 1/value.
+	"Spawn Rate" = 8.0

@@ -1,0 +1,6 @@
+[
+  {"version":1},
+  {"ingredient":{"id":"immersive_portals:portal_helper"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"mutantmonsters:endersoul_hand"},"type":"item_stack","bookmarkType":"INGREDIENT"},
+  {"ingredient":{"id":"epicfight_dd:wooden_battlestaff"},"type":"item_stack","bookmarkType":"INGREDIENT"}
+]

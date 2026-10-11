@@ -1,0 +1,37 @@
+#Flying World Gen - Skyhook (void structure lift + island generation)
+[skyhook]
+	#Lift structures that would spawn floating at the void floor up into the island band.
+	enableLift = true
+	#Grow a naturally-skinned island under structures that sit over the void.
+	enableIslands = true
+	#Lowest Y a lifted structure's base may be placed at.
+	# Default: 96
+	# Range: -64 ~ 320
+	bandMinY = 96
+	#Highest Y a lifted structure's base may be placed at.
+	# Default: 144
+	# Range: -64 ~ 320
+	bandMaxY = 144
+	#A column is treated as 'void' (eligible for lift / island) when its surface
+	#height is at or below minBuildHeight + this many blocks.
+	# Default: 8
+	# Range: 0 ~ 64
+	voidMargin = 8
+	#Extra horizontal radius (blocks) added around a structure's footprint when
+	#shaping its supporting island.
+	# Default: 6
+	# Range: 0 ~ 64
+	islandRadiusMargin = 6
+	#Vertical half-thickness (blocks) of the supporting island below the structure base.
+	# Default: 12
+	# Range: 2 ~ 96
+	islandThickness = 12
+	#Density multiplier for the injected island mass. Higher = more solid/aggressive fill.
+	# Default: 1.0
+	# Range: 0.1 ~ 8.0
+	islandStrength = 1.0
+	#Emit DEBUG logs each time a structure is lifted or an island field is built.
+	debugLog = false
+	#Structure IDs or namespaces to NEVER lift/island (e.g. 'minecraft:mineshaft' or
+	#a whole namespace like 'minecraft'). Matched against the structure's registry id.
+	denyList = []
