@@ -3,7 +3,7 @@
 This pass reduces CPU time on the client render thread, the client tick and the integrated server without
 changing how the game looks or plays. It has three parts:
 
-1. **`mods/flyaway_perf-0.1.0.jar`**: a new patch mod built from `perf-mod/`. It contains 51 mixins in 12 areas.
+1. **`mods/flyaway_perf-0.1.0.jar`**: a new patch mod built from `perf-mod/`. It contains 63 mixins in 12 areas.
    Every patch can be switched off without rebuilding (see "Turning patches off" below).
 2. **Config changes in `config/`**: only invisible ones. See `perf-mod/docs/configs.md`.
 3. **One typo fix in the Solas shader**: in `shaders.properties`, `program.world0/deferred..enabled` became
@@ -48,6 +48,7 @@ applied**. See "Things only you can do" below.
 | Server | Spawner biome lookups without per-attempt chunk resolution; `mobsAt` built once | ~1% of server thread |
 | Server | Chunk Activity Tracker saves moved off the server thread (autosave/ESC spike source) | spikes |
 | Server / Sable | Skip the native Rapier physics step for dimensions without any ship/contraption/box | **~20% of the server thread** in a world without ships (every loaded dimension paid it) |
+| Server (round 2) | Accessories idle-tick shortcut for mobs wearing nothing; Curios empty-modifier copy skip; EF Progressive Difficulty far-mob player scan skip; Simply Swords Hivemind bee check without a full entity scan | ~3.5-4% of the server thread |
 | Iris (round 2) | Vanilla `iris_*` uniform upload dedup in ExtendedShader, constant sampler names, empty batch builder fast path | ~0.6-0.9% |
 | Round-2 sweep | IP GC-bean list cache, IP collision box skip without global portals, Relics curio memo, Veil uniform hash map | ~0.6% (Oct 11) / ~1.1% (Oct 3) |
 
@@ -69,6 +70,13 @@ Intentional visible changes (each can be switched off):
   `xaero`, `sodium`, `flywheel`, `voxy`, `sable`, `vss` and `compat`.
 - Turn off one patch with `mixin.<area>.<MixinClassName>=false`.
 - If something looks wrong, bisect by area first.
+
+## Suggested fix for your own mod (not patched from here)
+
+micimmptl `SubLevelGhostCollision.augmentIntersecting` costs about 0.7% of the server thread. On every collision of
+every non-player entity, it builds a list of all levels and walks their usually empty sub-level containers. A mixin
+from this pack would break the next time you rebuild micimmptl, so the fix is written up in
+`perf-mod/docs/server.md` (Round 2) for you to apply in its source.
 
 ## Things only you can do (biggest remaining wins)
 

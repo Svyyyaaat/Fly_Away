@@ -42,6 +42,16 @@ switch exactly that one off in `config/flyaway_perf.properties` (`mixin.<area>.<
     leaves (`compat.relics`).
 11. **Gliders**: a glider in the chest slot and one in the Curios back slot should both work (`compat.vc_gliders`).
 
+12. **Server-side shortcuts:**
+    - Aether/Artifacts accessories: equip and unequip gloves, a ring or a cape; the effect should apply and go away,
+      and also show in F5. Re-log with one equipped. Mobs that spawn wearing an Artifacts item must still show and
+      drop it (`compat.accessories.*`).
+    - A curio with attributes should be applied exactly once after re-logging; check with `/attribute`
+      (`compat.curios.CurioInventoryClearCachedIdleMixin`).
+    - EF Progressive Difficulty: far mobs should get scaled once you come within range
+      (`compat.efprogressivediff.*`).
+    - A Simply Swords Hivemind swarm should still follow and attack (`compat.simplyswords.*`).
+
 ## Measuring
 
 - Run `/sparkc profiler start --thread *` for 60 s in the same scenario as your old profiles, then
