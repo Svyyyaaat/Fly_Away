@@ -1,6 +1,7 @@
 package dev.flyaway.perf.mixin.iris;
 
 import dev.flyaway.perf.iris.CustomUniformPushCache;
+import dev.flyaway.perf.iris.IrisFboDeferral;
 import dev.flyaway.perf.iris.VersionedCachedUniform;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.IdentityHashMap;
@@ -63,6 +64,9 @@ public abstract class CustomUniformsPushDedupMixin {
             if (pushed[i] != v) {
                 u.pushIfChanged(locs[i]);
                 pushed[i] = v;
+                if (IrisFboDeferral.STATS) IrisFboDeferral.statPushedUniform++;
+            } else if (IrisFboDeferral.STATS) {
+                IrisFboDeferral.statSkippedUniform++;
             }
         }
     }

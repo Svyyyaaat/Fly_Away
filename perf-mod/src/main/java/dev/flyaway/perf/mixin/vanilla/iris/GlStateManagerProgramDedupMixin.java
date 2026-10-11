@@ -24,6 +24,7 @@ public abstract class GlStateManagerProgramDedupMixin {
     private static void flyaway$dedupUseProgram(int program, CallbackInfo ci) {
         if (IrisFboDeferral.depth == 0) return;
         if (program == IrisFboDeferral.physicalProgram) {
+            if (IrisFboDeferral.STATS) IrisFboDeferral.statSkippedProgram++;
             ci.cancel();
         } else {
             IrisFboDeferral.physicalProgram = program;

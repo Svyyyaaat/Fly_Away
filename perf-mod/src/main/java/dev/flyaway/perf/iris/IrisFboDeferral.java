@@ -1,5 +1,7 @@
 package dev.flyaway.perf.iris;
 
+import dev.flyaway.perf.FlyAwayPerf;
+import dev.flyaway.perf.PerfConfig;
 import org.lwjgl.opengl.GL30C;
 
 /**
@@ -36,6 +38,11 @@ public final class IrisFboDeferral {
     /** Program physically in use by the last executed GlStateManager._glUseProgram in this scope, or -1. */
     public static int physicalProgram = -1;
 
+    // ---- optional statistics (config key iris.debugStats=true), logged every 10 s ----
+    public static final boolean STATS = PerfConfig.getBool("iris.debugStats", false);
+    public static long statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform;
+    private static long statNextLog;
+
     private IrisFboDeferral() {}
 
     public static void enter() {
@@ -54,7 +61,18 @@ public final class IrisFboDeferral {
             physical = -1;
             physicalProgram = -1;
             deferNextBind = false;
+            if (STATS) logStats();
         }
+    }
+
+    private static void logStats() {
+        long now = System.nanoTime();
+        if (now < statNextLog) return;
+        statNextLog = now + 10_000_000_000L;
+        FlyAwayPerf.LOGGER.info("[iris] last 10s: main rebinds deferred={} executed={} gbuffer rebinds skipped={}, "
+                        + "glUseProgram skipped={}, custom uniform pushes skipped={} done={}",
+                statDeferred, statFlushed, statSkippedRebind, statSkippedProgram, statSkippedUniform, statPushedUniform);
+        statDeferred = statFlushed = statSkippedRebind = statSkippedProgram = statSkippedUniform = statPushedUniform = 0;
     }
 
     /**
@@ -65,11 +83,13 @@ public final class IrisFboDeferral {
         if (target == GL_FRAMEBUFFER) {
             if (deferNextBind) {
                 pending = fbo; // logically bound now, physically still `physical`
+                if (STATS) statDeferred++;
                 return true;
             }
             boolean hadPending = pending != -1;
             pending = -1; // superseded by this bind (it sets both read and draw bindings)
             if (hadPending && fbo == physical) {
+                if (STATS) statSkippedRebind++;
                 return true; // the FBO bound before the deferred rebind is still bound
             }
             physical = fbo;
@@ -87,6 +107,7 @@ public final class IrisFboDeferral {
         if (f != -1) {
             pending = -1;
             physical = f;
+            if (STATS) statFlushed++;
             GL30C.glBindFramebuffer(GL_FRAMEBUFFER, f);
         }
     }
