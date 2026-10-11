@@ -4,7 +4,12 @@
   "package": "dev.flyaway.perf.mixin.compat",
   "plugin": "dev.flyaway.perf.mixin.PerfMixinPlugin",
   "compatibilityLevel": "JAVA_21",
-  "injectors": { "defaultRequire": 1 },
-  "mixins": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "curios.CurioInventoryCapabilityKeyMixin",
+    "irons_spellbooks.CurioBaseItemEquippedCacheMixin"
+  ],
   "client": []
 }
