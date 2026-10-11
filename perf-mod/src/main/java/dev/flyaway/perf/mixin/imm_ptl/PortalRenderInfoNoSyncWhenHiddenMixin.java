@@ -9,7 +9,8 @@ import qouteall.imm_ptl.core.portal.PortalRenderInfo;
 import qouteall.imm_ptl.core.render.GlQueryObject;
 
 /**
- * OPT-IN (imm_ptl.occlusion.noSyncWhenHidden=true; default off = stock behaviour).
+ * ON BY DEFAULT (imm_ptl.occlusion.noSyncWhenHidden=false restores stock behaviour). The user's 2026-10-03 profile
+ * spent 15.2% of the render thread blocked in exactly this read; the 2026-10-11 one 1.3%.
  *
  * <p>Profile: {@code PortalRenderInfo.renderAndDecideVisibility -> GlQueryObject.fetchQueryResult ->
  * glGetQueryObjectiv} 1.27% of the render thread. micimmptl already made the LAST-frame query read non-blocking
@@ -22,10 +23,10 @@ import qouteall.imm_ptl.core.render.GlQueryObject;
  *
  * <p>With the tunable on, that branch answers "still hidden" (the previous frame's result) instead of stalling. The
  * query was still issued, so the next frame sees the fresh result: a portal emerging from behind an occluder is drawn
- * one frame late (the same latency IP already accepts once its stall budget is used up). Off by default because
- * that one frame is a (tiny) visual difference. Ordinal 2 (no previous query at all) is left alone.
+ * one frame late (the same latency IP already accepts once its stall budget is used up). That one frame is
+ * the only (tiny) visual difference. Ordinal 2 (no previous query at all) is left alone.
  */
-@Mixin(value = PortalRenderInfo.class, remap = false)
+@Mixin(value = PortalRenderInfo.class, remap = false, priority = 900) // before micimmptl (ordinal 0 wrap), so ordinal 1 is the original this-frame fetch
 public abstract class PortalRenderInfoNoSyncWhenHiddenMixin {
     @WrapOperation(
             method = "renderAndDecideVisibility",
