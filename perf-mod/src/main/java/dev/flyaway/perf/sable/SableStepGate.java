@@ -5,7 +5,7 @@ import dev.flyaway.perf.PerfConfig;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 
 /**
- * Tracks live Rapier box bodies per physics scene so an empty scene's native step can be skipped.
+ * Tracks live Rapier box and rope bodies per physics scene so an empty scene's native step can be skipped.
  * Sable creates one Rapier scene per loaded dimension and steps it every substep even when the dimension
  * contains no dynamic body at all (only static terrain voxel colliders), which still costs broad-phase /
  * query-pipeline work in native code. Only touched from the server thread, but synchronized for safety.

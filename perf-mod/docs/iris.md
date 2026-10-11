@@ -305,3 +305,11 @@ unbind `glBindSamplers` (0.22).
   different FBO).
 * **ClearPass / beginLevelRendering**: these are real binds and clears per target. For `CustomUniforms.update`, see
   round 1.
+
+
+## Review round 2 note
+The vanilla-uniform dedup (round 2) assumes the ExtendedShader program is really bound when `updateUniforms` runs.
+If some mod issued a raw `glUseProgram` inside an Iris batch scope, round 1's `glUseProgram` dedup could skip a needed
+rebind, and the uniform dedup would then keep a mis-routed constant (ColorModulator / Fog*) until its value changes.
+No such raw call was found in the pack (Epic Fight compute, NightFall RenderState and Veil all leave state consistent),
+but if fog/tint looks wrong on some entities, try `mixin.vanilla.GlStateManagerProgramDedupMixin=false` first.

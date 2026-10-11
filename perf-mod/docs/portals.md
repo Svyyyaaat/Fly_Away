@@ -105,7 +105,8 @@ the same spots. All patches below were written to sit on top of its mixins. They
   query result was actually available (non-blocking `GL_QUERY_RESULT_AVAILABLE` check via `GlQueryObjectIdAccessor`).
   micimmptl serves a cached answer while last frame's result is pending; that cached "hidden" can be many frames old
   when the GPU runs behind, so in that case IP's original read is kept and a portal can never stay hidden for longer
-  than one frame. The brief's alternative of "render while the result is pending" was
+  than one frame. (Review round 2: availability is sampled by an @Inject placed *before* micimmptl's ordinal-0 read and
+  passed via `@Share`, because availability only flips false->true; sampling afterwards could race.) The brief's alternative of "render while the result is pending" was
   rejected: it would render the whole world again (about 10% of the frame) for every occluded portal, which is much
   more than the 1.27% stall it would save. Ordinal 2 (first frame with no previous query) is not touched.
 * **Expected gain**: 1.3% to 15% depending on how many occluded portals are on screen, plus the CPU/GPU overlap it restores.

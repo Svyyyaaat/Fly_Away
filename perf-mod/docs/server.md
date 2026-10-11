@@ -242,3 +242,10 @@ The integrated server's mean MSPT is low (3.5 ms), but its max is 611 ms. Things
 * **Disable**: `sable.skipEmptyPhysicsStep=false` or `mixin.sable.RapierPipelineEmptyStepMixin=false`.
 * **Test**: build/assemble an Aeronautics ship in a fresh dimension (first body after a long empty period) - it must
   fall/collide with terrain immediately; ships in other dimensions unaffected.
+
+**Review round 2 fixes / notes (Sable):**
+* Ropes (Create Simulated winches; `RapierRopeHandle`) are native bodies that can exist without any sub-level; they
+  are now counted like boxes (`sable.RapierRopeHandleTrackMixin`), so a world-anchored rope keeps its dimension stepping.
+* Unverifiable from Java: whether Rapier queues static-collider changes (`addChunk`/`removeChunk`/`changeBlock`) until
+  the next step. If memory grows over a very long ship-free session, or the first ship assembled after hours shows a
+  one-time hitch, set `sable.skipEmptyPhysicsStep=false` and report it.

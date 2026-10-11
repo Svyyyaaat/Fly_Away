@@ -4,6 +4,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.flyaway.perf.imm_ptl.ImmPtlTunables;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.Share;
+import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.lwjgl.opengl.GL15;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -31,19 +35,32 @@ import qouteall.imm_ptl.core.render.GlQueryObject;
  */
 @Mixin(value = PortalRenderInfo.class, remap = false)
 public abstract class PortalRenderInfoNoSyncWhenHiddenMixin {
+    /**
+     * Sample GL_QUERY_RESULT_AVAILABLE for last frame's query BEFORE micimmptl's ordinal-0 wrapper reads it.
+     * Availability only goes false -> true, so "available here" guarantees micimmptl read a fresh result
+     * (sampling after its call could race: GPU finishes in between while micimmptl already served a stale cache).
+     */
+    @Inject(method = "renderAndDecideVisibility",
+            at = @At(value = "INVOKE", target = "Lqouteall/imm_ptl/core/render/GlQueryObject;fetchQueryResult()Z", ordinal = 0))
+    private static void flyaway$sampleLastAvailable(CallbackInfoReturnable<Boolean> cir,
+            @Local(ordinal = 0) GlQueryObject lastFrameQuery, @Share("lastFresh") LocalBooleanRef lastFresh) {
+        boolean fresh = false;
+        if (ImmPtlTunables.OCCLUSION_NO_SYNC_WHEN_HIDDEN && lastFrameQuery != null) {
+            int id = ((GlQueryObjectIdAccessor) lastFrameQuery).flyaway$id();
+            fresh = id > 0 && GL15.glGetQueryObjecti(id, GL15.GL_QUERY_RESULT_AVAILABLE) != 0;
+        }
+        lastFresh.set(fresh);
+    }
+
     @WrapOperation(
             method = "renderAndDecideVisibility",
             at = @At(value = "INVOKE", target = "Lqouteall/imm_ptl/core/render/GlQueryObject;fetchQueryResult()Z", ordinal = 1))
     private static boolean flyaway$keepHiddenWithoutStall(GlQueryObject thisFrameQuery, Operation<Boolean> original,
-            @Local(ordinal = 0) GlQueryObject lastFrameQuery) {
-        // Only trust "hidden" when last frame's query result was really readable: micimmptl answers from a cached
-        // value while the result is still pending, and that cached "hidden" can be arbitrarily old (GPU frames behind).
-        // GL_QUERY_RESULT_AVAILABLE never blocks. Stale -> keep IP's original (stalling) read so correctness holds.
-        if (ImmPtlTunables.OCCLUSION_NO_SYNC_WHEN_HIDDEN && lastFrameQuery != null) {
-            int id = ((GlQueryObjectIdAccessor) lastFrameQuery).flyaway$id();
-            if (id > 0 && GL15.glGetQueryObjecti(id, GL15.GL_QUERY_RESULT_AVAILABLE) != 0) {
-                return false;
-            }
+            @Share("lastFresh") LocalBooleanRef lastFresh) {
+        // Only trust "hidden" when last frame's query result was really readable when micimmptl/IP read it;
+        // a stale cached answer falls back to IP's original (stalling) read so correctness holds.
+        if (ImmPtlTunables.OCCLUSION_NO_SYNC_WHEN_HIDDEN && lastFresh.get()) {
+            return false;
         }
         return original.call(thisFrameQuery);
     }

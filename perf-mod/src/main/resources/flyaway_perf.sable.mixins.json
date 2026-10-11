@@ -10,7 +10,8 @@
   "mixins": [
     "RapierBoxHandleTrackMixin",
     "RapierPhysicsPipelineInvoker",
-    "RapierPipelineEmptyStepMixin"
+    "RapierPipelineEmptyStepMixin",
+    "RapierRopeHandleTrackMixin"
   ],
   "client": []
 }
