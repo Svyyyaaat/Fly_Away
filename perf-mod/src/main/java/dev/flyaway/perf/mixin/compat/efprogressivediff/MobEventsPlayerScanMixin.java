@@ -38,7 +38,9 @@ public abstract class MobEventsPlayerScanMixin {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/server/level/ServerLevel;getEntitiesOfClass(Ljava/lang/Class;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;"))
     private static List<?> flyaway$skipEmptyScan(ServerLevel level, Class<?> cls, AABB box, Operation<List<?>> original) {
-        if (cls == ServerPlayer.class) {
+        // Sable's entity getter also queries the box transformed out of a sub-level plot; our plain box test can't
+        // reproduce that, so boxes centred in plot space always take the original path (review hardening).
+        if (cls == ServerPlayer.class && !dev.flyaway.perf.compat.SablePlotCheck.inPlot(level, box.getCenter())) {
             boolean any = false;
             for (ServerPlayer p : level.players()) {
                 if (p.getBoundingBox().intersects(box)) { any = true; break; }

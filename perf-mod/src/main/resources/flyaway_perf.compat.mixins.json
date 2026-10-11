@@ -22,6 +22,8 @@
     "simplyswords.EntityLookupBeeCountMixin",
     "simplyswords.HivemindSwarmHasActiveMixin",
     "simplyswords.LevelEntityGetterAdapterAccessor",
+    "simplyswords.PersistentEntitySectionManagerAccessor",
+    "simplyswords.ServerLevelEntityManagerAccessor",
     "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],
   "client": [

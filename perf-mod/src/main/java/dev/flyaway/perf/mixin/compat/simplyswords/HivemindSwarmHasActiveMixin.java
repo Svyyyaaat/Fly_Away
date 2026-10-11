@@ -31,10 +31,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class HivemindSwarmHasActiveMixin {
     @Inject(method = "hasActive(Lnet/minecraft/server/level/ServerLevel;)Z", at = @At("HEAD"), cancellable = true)
     private static void flyaway$noBees(ServerLevel world, CallbackInfoReturnable<Boolean> cir) {
-        LevelEntityGetter<Entity> getter = world.getEntities();
-        if (getter instanceof LevelEntityGetterAdapter<?> adapter
-                && ((LevelEntityGetterAdapterAccessor) adapter).flyaway$visibleEntities() instanceof SimplySwordsBeeCount count
-                && count.flyaway$beeCount() == 0) {
+        // Read the level's visible-entity EntityLookup directly: Sable wraps ServerLevel.getEntities() in
+        // SubLevelInclusiveLevelEntityGetter, whose getAll() delegates to exactly this lookup (review finding: the
+        // previous instanceof LevelEntityGetterAdapter check never matched in this pack).
+        Object lookup = ((PersistentEntitySectionManagerAccessor) ((ServerLevelEntityManagerAccessor) world).flyaway$entityManager())
+                .flyaway$visibleEntityStorage();
+        if (lookup instanceof SimplySwordsBeeCount count && count.flyaway$beeCount() == 0) {
             cir.setReturnValue(false);
         }
     }
