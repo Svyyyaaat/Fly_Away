@@ -26,7 +26,6 @@ for lib in nf['libraries'] + v['libraries']:
     key = lib['name'].rsplit(':', 1)[0] if lib['name'].count(':') == 2 else lib['name']
     if key in seen: continue
     seen.add(key); cp.append(p)
-cp.append(f"{MC}/versions/1.21.1/1.21.1.jar")
 natives = f"{gamedir}/natives"; os.makedirs(natives, exist_ok=True)
 sub = {'${library_directory}': f"{MC}/libraries", '${classpath_separator}': ':', '${version_name}': 'neoforge-21.1.252',
        '${natives_directory}': natives, '${launcher_name}': 'flyaway-test', '${launcher_version}': '1', '${classpath}': ':'.join(cp)}
