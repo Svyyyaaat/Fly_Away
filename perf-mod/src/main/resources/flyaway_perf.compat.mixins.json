@@ -13,6 +13,9 @@
     "aaa_particles.EffectDefinitionAccessor",
     "aaa_particles.EffectDefinitionPortalDeltaMixin",
     "aaa_particles.EffekRendererIdleSkipMixin",
-    "aaa_particles.EffekseerManagerPlayTrackMixin"
+    "aaa_particles.EffekseerManagerPlayTrackMixin",
+    "colorwheel.ClrwlEngineAccessor",
+    "colorwheel.ClrwlIndirectDrawManagerAccessor",
+    "colorwheel.ClrwlSkipEmptyTranslucentMixin"
   ]
 }
