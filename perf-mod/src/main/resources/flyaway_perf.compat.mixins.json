@@ -10,7 +10,8 @@
   "mixins": [
     "aether.AetherCapeStreamMixin",
     "architectury.EventFactoryHandleCacheMixin",
-    "curios.CurioInventoryItemKeyMixin"
+    "curios.CurioInventoryItemKeyMixin",
+    "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],
   "client": [
     "aaa_particles.AaaDeltaTrackerFrameMixin",

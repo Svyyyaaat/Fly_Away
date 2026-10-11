@@ -10,6 +10,7 @@
   "mixins": [],
   "client": [
     "clienttick.ClientLevelAnimateTickBiomeMixin",
+    "entity.MinecraftFrameStampMixin",
     "iris.GlStateManagerFboDeferMixin",
     "iris.GlStateManagerProgramDedupMixin",
     "portals.GameRendererFrameScopeMixin"
