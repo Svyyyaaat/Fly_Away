@@ -8,7 +8,10 @@
     "defaultRequire": 1
   },
   "mixins": [
-    "aether.AetherCapeStreamMixin"
+    "aether.AetherCapeStreamMixin",
+    "curios.CurioInventoryItemKeyMixin"
   ],
-  "client": []
+  "client": [
+    "irons_spellbooks.CurioBaseItemEquippedMemoMixin"
+  ]
 }
