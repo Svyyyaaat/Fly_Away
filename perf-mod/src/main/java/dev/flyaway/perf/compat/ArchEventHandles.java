@@ -30,6 +30,7 @@ public final class ArchEventHandles {
     public static Object invoke(Object listener, Method method, Object[] args) throws Throwable {
         MethodHandle mh = CACHE.get(method);
         if (mh == null) mh = CACHE.computeIfAbsent(method, ArchEventHandles::build);
-        return (Object) mh.invokeExact(listener, args == null ? NO_ARGS : args);
+        Object[] a = args == null ? NO_ARGS : args;
+        return (Object) mh.invokeExact(listener, (Object[]) a);
     }
 }

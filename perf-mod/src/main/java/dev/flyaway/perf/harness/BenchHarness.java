@@ -39,7 +39,9 @@ public final class BenchHarness {
     private static final String LABEL = System.getProperty("flyaway.harness.label", "run");
     private static final String SETUP = System.getProperty("flyaway.harness.setup", "");
 
-    private enum Phase { BOOT, LOADING, WARMUP, MEASURE, COOLDOWN, DONE }
+    private enum Phase { BOOT, LOADING, WARMUP, SHOT, MEASURE, COOLDOWN, DONE }
+    private static int shotIndex;
+    private static int shotDelay;
 
     private static Phase phase = Phase.BOOT;
     private static long phaseStartNanos;
@@ -80,6 +82,16 @@ public final class BenchHarness {
     }
 
     private static void onFramePost(RenderFrameEvent.Post e) {
+        if (phase == Phase.SHOT) {
+            if (--shotDelay <= 0) {
+                Minecraft mc = Minecraft.getInstance();
+                net.minecraft.client.Screenshot.grab(FMLPaths.GAMEDIR.get().toFile(), "bench-" + LABEL + "-" + shotIndex + ".png",
+                        mc.getMainRenderTarget(), msg -> {});
+                shotIndex++;
+                shotDelay = 40;
+            }
+            return;
+        }
         if (phase != Phase.MEASURE || frameStartWall == 0) return;
         if (frames == frameMs.length) {
             frameMs = Arrays.copyOf(frameMs, frames * 2);
@@ -141,6 +153,19 @@ public final class BenchHarness {
             case WARMUP -> {
                 spin(mc);
                 if (sinceS(phaseStartNanos) >= WARMUP_S) {
+                    setPhase(Phase.SHOT);
+                    shotIndex = 0;
+                    shotDelay = 40;
+                }
+            }
+            case SHOT -> {
+                // Fixed camera poses for visual A/B comparison (patched vs unpatched builds).
+                if (mc.player != null) {
+                    mc.player.getAbilities().flying = true;
+                    mc.player.setYRot(shotIndex * 90f);
+                    mc.player.setXRot(shotIndex == 4 ? 60f : 10f);
+                }
+                if (shotIndex > 4) {
                     setPhase(Phase.MEASURE);
                     if (SPARK) {
                         cmd(mc, "sparkc profiler start --thread * --interval 4 --force-java-sampler --timeout " + MEASURE_S + " --save-to-file");
