@@ -9,6 +9,7 @@
   },
   "mixins": [],
   "client": [
-    "ComputeShaderSetupVaoStateMixin"
+    "ComputeShaderSetupVaoStateMixin",
+    "LayerClassLookupMixin"
   ]
 }

@@ -9,7 +9,8 @@
   },
   "mixins": [
     "curios.CurioInventoryCapabilityKeyMixin",
-    "irons_spellbooks.CurioBaseItemEquippedCacheMixin"
+    "irons_spellbooks.CurioBaseItemEquippedCacheMixin",
+    "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],
   "client": []
 }

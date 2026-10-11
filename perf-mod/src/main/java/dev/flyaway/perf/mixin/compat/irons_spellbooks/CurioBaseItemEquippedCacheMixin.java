@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Unique;
  * entity - always with the same local player. Each call does a capability lookup, Optional chain and a
  * Curios cache lookup; profile: isEquippedBy = 0.95% of the render thread (~0.65% of it is fixed by
  * compat.curios.CurioInventoryCapabilityKeyMixin, this one removes the rest).
- * Fix: on the client thread only, for the same (item, entity) within one client frame (see {@link FrameStamp}),
+ * Fix: on the client thread only, for the same (item, entity) within one client epoch (see {@link FrameStamp}: bumped at frame start, around the client tick and after keybinds),
  * return the previous answer. Curios inventories only change through packets/client tick/input, all outside the
  * render part of a frame, and Curios itself already caches this lookup per game tick - so the result is
  * identical. Server thread calls (spell logic) are never cached.
@@ -37,7 +37,7 @@ public abstract class CurioBaseItemEquippedCacheMixin {
         if (entity == null || !FrameStamp.onClientThread() || !entity.level().isClientSide()) {
             return original.call(entity);
         }
-        long frame = FrameStamp.frame;
+        long frame = FrameStamp.epoch;
         WeakReference<LivingEntity> ref = this.flyaway$lastEntity;
         if (this.flyaway$lastFrame == frame && ref != null && ref.get() == entity) {
             return this.flyaway$lastResult;
