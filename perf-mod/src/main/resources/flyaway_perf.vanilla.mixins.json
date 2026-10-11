@@ -11,6 +11,7 @@
   "client": [
     "clienttick.ClientLevelAnimateTickBiomeMixin",
     "iris.GlStateManagerFboDeferMixin",
-    "iris.GlStateManagerProgramDedupMixin"
+    "iris.GlStateManagerProgramDedupMixin",
+    "portals.GameRendererFrameScopeMixin"
   ]
 }

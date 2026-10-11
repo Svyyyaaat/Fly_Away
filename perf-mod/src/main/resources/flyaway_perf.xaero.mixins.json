@@ -9,8 +9,8 @@
   },
   "mixins": [],
   "client": [
-    "xaeroworldmap.MapLimiterVramThrottleMixin",
     "xaeroworldmap.DimensionHighlighterHandlerVersionMixin",
+    "xaeroworldmap.MapLimiterVramThrottleMixin",
     "xaeroworldmap.MapRegionHighlightHashMixin"
   ]
 }
