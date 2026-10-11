@@ -17,7 +17,7 @@ provider = "NULL"
 	enable_target_entity_guide = true
 	blood_effects = true
 	use_compute_shader = true
-	use_persistent_buffer = false
+	use_persistent_buffer = true
 	ground_slams = true
 	# Default: 30
 	# Range: 0 ~ 30
