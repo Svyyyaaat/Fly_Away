@@ -12,6 +12,15 @@
     "curios.CurioInventoryItemKeyMixin"
   ],
   "client": [
-    "irons_spellbooks.CurioBaseItemEquippedMemoMixin"
+    "aaa_particles.AaaDeltaTrackerFrameMixin",
+    "aaa_particles.EffectDefinitionAccessor",
+    "aaa_particles.EffectDefinitionPortalDeltaMixin",
+    "aaa_particles.EffekRendererIdleSkipMixin",
+    "aaa_particles.EffekseerManagerPlayTrackMixin",
+    "colorwheel.ClrwlEngineAccessor",
+    "colorwheel.ClrwlIndirectDrawManagerAccessor",
+    "colorwheel.ClrwlSkipEmptyTranslucentMixin",
+    "irons_spellbooks.CurioBaseItemEquippedMemoMixin",
+    "ponder.PlacementClientItemMatchCacheMixin"
   ]
 }
