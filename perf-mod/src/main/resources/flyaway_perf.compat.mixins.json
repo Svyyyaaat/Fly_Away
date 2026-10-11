@@ -10,5 +10,7 @@
   "mixins": [
     "curios.CurioInventoryItemKeyMixin"
   ],
-  "client": []
+  "client": [
+    "irons_spellbooks.CurioBaseItemEquippedMemoMixin"
+  ]
 }
