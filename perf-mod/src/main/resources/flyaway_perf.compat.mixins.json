@@ -10,6 +10,7 @@
   "mixins": [
     "aether.AetherCapeStreamMixin",
     "architectury.EventFactoryHandleCacheMixin",
+    "chunkactivitytracker.ChunkActivityMapAsyncSaveMixin",
     "curios.CurioInventoryItemKeyMixin",
     "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],

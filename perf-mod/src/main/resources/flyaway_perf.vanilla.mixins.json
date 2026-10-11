@@ -7,7 +7,10 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": [],
+  "mixins": [
+    "server.NaturalSpawnerBiomeMemoMixin",
+    "server.NaturalSpawnerMobsAtMemoMixin"
+  ],
   "client": [
     "clienttick.ClientLevelAnimateTickBiomeMixin",
     "entity.MinecraftFrameStampMixin",
