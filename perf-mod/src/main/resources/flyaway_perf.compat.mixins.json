@@ -4,7 +4,11 @@
   "package": "dev.flyaway.perf.mixin.compat",
   "plugin": "dev.flyaway.perf.mixin.PerfMixinPlugin",
   "compatibilityLevel": "JAVA_21",
-  "injectors": { "defaultRequire": 1 },
-  "mixins": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "aether.AetherCapeStreamMixin"
+  ],
   "client": []
 }
