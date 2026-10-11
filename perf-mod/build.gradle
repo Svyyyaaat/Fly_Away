@@ -22,7 +22,7 @@ repositories {
 
 // Compile against the exact mod jars shipped in the pack (../mods) plus their nested jar-in-jar
 // libraries (extracted by tools/extract-nested.sh into build/nested). Nothing here is bundled.
-def packMods = fileTree(dir: "${rootDir}/../mods", include: '*.jar')
+def packMods = fileTree(dir: "${rootDir}/../mods", include: '*.jar', exclude: 'flyaway_perf*.jar')
 def nestedLibs = fileTree(dir: "${buildDir}/nested", include: '**/*.jar')
 
 dependencies {
