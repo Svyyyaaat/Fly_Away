@@ -12,7 +12,6 @@
     "clienttick.ClientLevelAnimateTickBiomeMixin",
     "iris.GlStateManagerFboDeferMixin",
     "iris.GlStateManagerProgramDedupMixin",
-    "particles.ClientLevelAnimateTickBiomeMixin",
     "portals.GameRendererFrameScopeMixin"
   ]
 }

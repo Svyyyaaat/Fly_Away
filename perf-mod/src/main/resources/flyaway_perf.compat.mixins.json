@@ -9,6 +9,7 @@
   },
   "mixins": [
     "aether.AetherCapeStreamMixin",
+    "architectury.EventFactoryHandleCacheMixin",
     "curios.CurioInventoryItemKeyMixin"
   ],
   "client": [
