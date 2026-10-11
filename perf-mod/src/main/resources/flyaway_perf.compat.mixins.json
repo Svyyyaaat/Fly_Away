@@ -8,11 +8,20 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "accessories.AccessoriesEntityTickIdleMixin",
+    "accessories.AccessoriesHolderImplAccessor",
+    "accessories.ExpandedSimpleContainerValidIndexMixin",
     "aether.AetherCapeStreamMixin",
     "architectury.EventFactoryHandleCacheMixin",
     "chunkactivitytracker.ChunkActivityMapAsyncSaveMixin",
+    "curios.CurioInventoryClearCachedIdleMixin",
     "curios.CurioInventoryItemKeyMixin",
+    "curios.CurioStacksHandlerCachedModsAccessor",
+    "efprogressivediff.MobEventsPlayerScanMixin",
     "relics.EntityUtilsEquippedCurioMemoMixin",
+    "simplyswords.EntityLookupBeeCountMixin",
+    "simplyswords.HivemindSwarmHasActiveMixin",
+    "simplyswords.LevelEntityGetterAdapterAccessor",
     "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],
   "client": [
