@@ -12,6 +12,7 @@
     "architectury.EventFactoryHandleCacheMixin",
     "chunkactivitytracker.ChunkActivityMapAsyncSaveMixin",
     "curios.CurioInventoryItemKeyMixin",
+    "relics.EntityUtilsEquippedCurioMemoMixin",
     "vc_gliders.CuriosTrinketsUtilGliderCacheMixin"
   ],
   "client": [
@@ -24,6 +25,7 @@
     "colorwheel.ClrwlIndirectDrawManagerAccessor",
     "colorwheel.ClrwlSkipEmptyTranslucentMixin",
     "irons_spellbooks.CurioBaseItemEquippedMemoMixin",
-    "ponder.PlacementClientItemMatchCacheMixin"
+    "ponder.PlacementClientItemMatchCacheMixin",
+    "veil.ShaderProgramUniformMapMixin"
   ]
 }

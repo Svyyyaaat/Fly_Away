@@ -7,7 +7,10 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": [],
+  "mixins": [
+    "CollisionHelperNoGlobalPortalBoxMixin",
+    "GcMonitorBeanListCacheMixin"
+  ],
   "client": [
     "GlQueryObjectIdAccessor",
     "ImmPtlClientChunkMapFastGetMixin",
