@@ -221,3 +221,24 @@ The integrated server's mean MSPT is low (3.5 ms), but its max is 611 ms. Things
      milliseconds (off-thread, flyaway_perf)`;
    - quit to title and re-open the world. The load line `Loading data for N chunks ...` should show the same N;
    - `<world>/chunk_activity_info/` must have no leftover `*.flyaway-tmp` files.
+
+---
+
+## Lead addition: Sable empty-scene physics step skip (`sable.RapierPipelineEmptyStepMixin` + `sable.RapierBoxHandleTrackMixin`)
+
+* **Problem**: Sable keeps one native Rapier scene per loaded dimension and calls `Rapier3D.step` every physics
+  substep (`substepsPerTick` per tick) even when the dimension has **no** sub-level, kinematic contraption or box body
+  - only static terrain voxel colliders (`addChunk`). Nothing can move or collide, but the native step still runs its
+  broad-phase/query-pipeline maintenance. In the local benchmark world (no ships, 8 dimensions loaded) this was
+  **19-23% of the integrated-server thread** (`Rapier3D.step` under `SubLevelPhysicsSystem.tickPipelinePhysics`).
+* **Fix**: wrap the `Rapier3D.step` call in `RapierPhysicsPipeline.physicsTick`; skip it when `activeSubLevels`,
+  `activeContraptions` and `queuedWakeUps` are empty and no `RapierBoxHandle` is alive for that scene (tracked by
+  `RapierBoxHandleTrackMixin` on `create`/`remove`). Only Sable's own rapier module calls the Rapier natives (checked
+  by scanning every jar's bytecode), so these are all the dynamic bodies there can be. `Rapier3D.tick`, contraption
+  pose updates, wake-ups and collision processing still run. When the first body appears, stepping resumes and
+  pending static-collider changes are integrated on that step.
+* **Measured**: `sable.debugStats=true` logged `skipped(empty)=9600 stepped=0` per 30 s; `Rapier3D.step` disappeared
+  from the server-thread profile; server MSPT in the benchmark went from ~55-60 ms to ~34 ms (noisy environment).
+* **Disable**: `sable.skipEmptyPhysicsStep=false` or `mixin.sable.RapierPipelineEmptyStepMixin=false`.
+* **Test**: build/assemble an Aeronautics ship in a fresh dimension (first body after a long empty period) - it must
+  fall/collide with terrain immediately; ships in other dimensions unaffected.

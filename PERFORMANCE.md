@@ -3,7 +3,7 @@
 This pass reduces CPU time on the client render thread, the client tick and the integrated server without
 changing how the game looks or plays. It has three parts:
 
-1. **`mods/flyaway_perf-0.1.0.jar`**: a new patch mod built from `perf-mod/`. It contains 39 mixins in 12 areas.
+1. **`mods/flyaway_perf-0.1.0.jar`**: a new patch mod built from `perf-mod/`. It contains 51 mixins in 12 areas.
    Every patch can be switched off without rebuilding (see "Turning patches off" below).
 2. **Config changes in `config/`**: only invisible ones. See `perf-mod/docs/configs.md`.
 3. **One typo fix in the Solas shader**: in `shaders.properties`, `program.world0/deferred..enabled` became
@@ -47,6 +47,9 @@ applied**. See "Things only you can do" below.
 | Architectury | Cache event-dispatch MethodHandles (was `unreflect` per listener per call) | ~0.1% client, ~2% server tick |
 | Server | Spawner biome lookups without per-attempt chunk resolution; `mobsAt` built once | ~1% of server thread |
 | Server | Chunk Activity Tracker saves moved off the server thread (autosave/ESC spike source) | spikes |
+| Server / Sable | Skip the native Rapier physics step for dimensions without any ship/contraption/box | **~20% of the server thread** in a world without ships (every loaded dimension paid it) |
+| Iris (round 2) | Vanilla `iris_*` uniform upload dedup in ExtendedShader, constant sampler names, empty batch builder fast path | ~0.6-0.9% |
+| Round-2 sweep | IP GC-bean list cache, IP collision box skip without global portals, Relics curio memo, Veil uniform hash map | ~0.6% (Oct 11) / ~1.1% (Oct 3) |
 
 The estimates add up to roughly **10-15% of render-thread time** on your Oct 11 profile, plus up to another ~14%
 in portal-heavy scenes like your Oct 3 profile (the occlusion stall). The test machine has no GPU, so these were not
@@ -96,5 +99,5 @@ Intentional visible changes (each can be switched off):
     `-Dflyaway.harness=bench` drives it: fixed seed, NoAI mobs, a nether portal, screenshots, spark on all threads,
     then exit.
   - `spark/`: Java tools that read `.sparkprofile` files (`Tree`, `Callers`, `Spark`).
-- **Mixin check:** `-Dflyaway.logMixins=true` logs every applied mixin. All of them applied with the full pack in
-  the test client.
+- **Mixin check:** `-Dflyaway.logMixins=true` logs every applied mixin. In the final test run, 49 of 51 applied with the full pack. The other 2 target
+  classes that only load when a Sable box body exists or a Sable vehicle crosses a portal.
