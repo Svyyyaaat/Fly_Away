@@ -242,3 +242,256 @@ The integrated server's mean MSPT is low (3.5 ms), but its max is 611 ms. Things
 * **Disable**: `sable.skipEmptyPhysicsStep=false` or `mixin.sable.RapierPipelineEmptyStepMixin=false`.
 * **Test**: build/assemble an Aeronautics ship in a fresh dimension (first body after a long empty period) - it must
   fall/collide with terrain immediately; ships in other dimensions unaffected.
+
+---
+
+## Round 2 (2026-10-11): per-entity tick listeners on the integrated server
+
+### Data
+
+`local-unpatched-allthreads.sparkprofile` and `local-patched4-allthreads.sparkprofile` (lead's llvmpipe test world:
+fresh world, ~16 NoAI mobs at spawn plus natural mobs, a nether portal; the 4-core box is saturated, so the server
+runs at 35-60 ms/tick and only **relative shares** mean something). Read with
+`java -Dthread="Server thread" ... Tree <profile> 0.3`. For listeners that occur under many entity types the numbers
+below are **aggregated over all call sites** (they merge every outermost occurrence of a frame), so they are larger
+than the single largest branch that `Tree` shows. All numbers are % of the Server thread in the patched4 profile
+(unpatched in brackets where relevant). The java sampler is safepoint-biased: tiny leaf frames at loop back-edges
+(`FluidState.isRandomlyTicking` 5.9% inside `tickChunk`, `BoundTickingBlockEntity.getPos` 1.15%,
+`lithium$getCachedState` 1.06%) stand for the whole random-tick loop or the first cache-missing touch of each block
+entity. They are not removable work.
+
+The mod set changed again since round 1:
+* **Accessories is back** (1.1.0-beta.48, jar-in-jar of the Aether jar, mod id `accessories`).
+* TACZ, Simply Swords, EF Progressive Difficulty, Caelus and Mowzie's Mobs are present.
+
+`EventHooks.fireEntityTickPre` costs 5.78% and `fireEntityTickPost` 5.82%. The listeners behind them (aggregated):
+
+| listener (event) | % | what it does per entity per tick | decision |
+|---|---|---|---|
+| Accessories `AccessoriesEventHandler.onLivingEntityTick` (Pre) | **2.89** (1.88) | see patch R2-1 | **R2-1, R2-2** |
+| TACZ `LivingEntityMixin.onTickServerSide` (tick RETURN, not the event) | 2.04 (1.55) | 8 shooter sub-ticks + 8 `SyncedDataKey.setValue` (attachment + 2 hash lookups each) for every LivingEntity | rejected, see below |
+| Epic Fight `VanillaEntityEventHooks.preTick` (Pre) | 0.89 | entity patch preTick: server animator tick, hurtable state | real work |
+| EF Progressive Difficulty `MobEvents.onMobFirstTick` (Post) | **0.76** (0.92) | 257x257 player scan for unscaled mobs | **R2-4** |
+| Curios `CuriosEventHandler.tick` (Post) | 0.76 | of which `clearCachedSlotModifiers` **0.34** | **R2-3** |
+| Mowzie's `ServerEventHandler.onLivingTick` (Post) | 0.72 | head-slot check, 3 data-attachment ticks, armor/knockback attribute lookups | rejected (real per-entity state) |
+| Relics `LeafyMantleItem$CommonEvents.onLivingTick` (Post) | 0.68 | `findEquippedCurios` (Curios capability lookup + slot scan) for every living entity | rejected, see below |
+| Caelus `CaelusEvents.livingTick` (Post) | 0.59 | fall-flying attribute lookup, remove + conditional re-add of the elytra modifier | rejected, see below |
+| Aether `ArmorAbilityListener.onEntityUpdate` (Post) | 0.43 | 4 armor-set checks (`DeferredHolder.get`, accessory lookup for Phoenix) | rejected (spread, < 0.2% each) |
+| Artifacts `ArtifactHooks.livingUpdate` (Post) | 0.38 | dynamic attribute modifiers tick, equipment reduce | rejected (real state) |
+| Reliquary `MobCharmItem.onLivingUpdate` (Pre) | 0.30 | target/brain-memory lookups | rejected (small, real) |
+| Simply Swords `HivemindSwarmManager.hasActive` (level tick HEAD) | **0.34** (0.18) | iterates every entity of the level | **R2-5** |
+
+### Patches (all in `flyaway_perf.compat.mixins.json`, "mixins", i.e. both sides)
+
+#### R2-1. `compat.accessories.AccessoriesEntityTickIdleMixin` (+ `AccessoriesHolderImplAccessor`, helper `dev.flyaway.perf.compat.AccessoriesIdleTick`)
+* **Target**: `io.wispforest.accessories.impl.AccessoriesEventHandler.onLivingEntityTick(LivingEntity)V`, a static
+  `@Inject HEAD cancellable`. Accessor and invoker on `AccessoriesHolderImpl` (`loadedFromTag`,
+  `containersRequiringUpdates`, `getAllSlotContainers()`). No other mod in the pack mixes into these classes (bytecode
+  scan of all jars).
+* **Problem**: Artifacts' `data/artifacts/accessories/entity/slots.json` gives 5 accessory slots each to husk,
+  skeleton, zombie, drowned, stray, bogged, wither skeleton, piglin, piglin brute, zombified piglin and ghast. Players
+  get 12 via `#accessories:defaulted_targets`. For each of these entities, every tick, on both sides, the handler:
+  - allocates two HashMaps and two `AccessoryAttributeBuilder`s (HashMap + LinkedHashMultimap + HashSet each);
+  - allocates a `SlotReference` and a `slotName + "/" + i` String per slot (plus a debug String inside every
+    `getItem`, see R2-2);
+  - does four `getHolder()` round trips (an attachment lookup + an `EntitySlotLoader` map lookup each);
+  - runs `ImmutableMap.copyOf`, `updateContainers()` and an event post.
+
+  In the normal case (the mob wears nothing) all of this changes nothing. Cost: 2.89% of the server thread (1.88%
+  unpatched).
+* **Fix**: `AccessoriesIdleTick.tryIdleTick` uses side-effect-free reads to prove that the original would be a no-op.
+  All of these must hold:
+  - the holder is not `loadedFromTag` and its slot-container count equals the entity's slot count, so `getHolder()`
+    is a pure lookup (this is its own condition, negated);
+  - every current accessory stack is empty, so there is nothing to tick;
+  - on the server, every stack and cosmetic stack passes `ItemStack.matches` against its remembered previous stack.
+    This is the original's own change test, so even odd "empty" stacks with count 0 take the original path;
+  - no container `hasChanged()`;
+  - every container's capability belongs to this entity, so `getContainers()` would not re-bind it;
+  - the pending-update map and the invalid-stack list are empty.
+
+  If they hold, only the parts that are still observable run:
+  - `AccessoriesCapability.get(entity)` (lazy capability creation);
+  - on the server, `ContainersChangeCallback.EVENT.invoker().onChange(entity, capability, ImmutableMap.of())`.
+    `ImmutableMap.copyOf` of an empty map returns that same singleton, and the callback has no listener in this pack
+    anyway.
+
+  The original's client branch returns right after the slot loop, so on the client only `get()` remains. Any other
+  state runs the original method unchanged: an equipped accessory, a change this tick, a resize, invalid stacks or
+  freshly loaded NBT.
+* **Expected gain**: ~2-2.4% of the server thread with the test world's mob mix, more with many zombies or skeletons.
+  The same applies to client-side ticking of those mobs. The remaining cost is `get()` and the slot reads.
+* **Risk**: low. The only assumption is that the listed reads have no side effects. `getAccessories()` and
+  `getCosmeticAccessories()` call `update()`, which does nothing while the container is not flagged, and the flag is
+  checked first.
+* **Disable**: `mixin.compat.AccessoriesEntityTickIdleMixin=false`
+
+#### R2-2. `compat.accessories.ExpandedSimpleContainerValidIndexMixin`
+* **Target**: `io.wispforest.accessories.impl.ExpandedSimpleContainer.validIndex(I)Z`, `@Inject HEAD cancellable`.
+* **Problem**: `validIndex` always builds `"Container: " + name + ", "`, but that string is only used for a
+  dev-environment log of an invalid index. Every `getItem`/`setItem`/`removeItem` of an accessory container calls it.
+  These containers are read per slot, per entity, per tick by:
+  - the handler above, when it is not idle;
+  - the client `getItemBySlot` cosmetic hook;
+  - Aether, Artifacts, Reliquary and SophisticatedCore accessory scans.
+* **Fix**: for `0 <= slot < getContainerSize()`, return `true` at HEAD (the original returns true with no other
+  effect). Out-of-range calls run the original. The result is identical on every input.
+* **Expected gain**: one String + byte[] per accessory slot read. This is not separately visible in the sampled
+  profile (it is inlined into its callers). Small, but free.
+* **Disable**: `mixin.compat.ExpandedSimpleContainerValidIndexMixin=false`
+
+#### R2-3. `compat.curios.CurioInventoryClearCachedIdleMixin` (+ `CurioStacksHandlerCachedModsAccessor`)
+* **Target**: `top.theillusivec4.curios.common.capability.CurioInventoryCapability.clearCachedSlotModifiers()V`,
+  `@Inject HEAD cancellable`, with `@Shadow curioInventory` and an accessor for `CurioStacksHandler.cachedModifiers`.
+* **Problem**: Curios' tick handler calls this for every entity with a curios inventory every tick. It allocates a
+  `HashMultimap`. Then, for every slot handler, it calls `getCachedModifiers()`, which returns a **new `HashSet` copy**
+  of the handler's map, just to call `isEmpty()`. The map is only filled from saved `CachedModifiers` NBT on load.
+  Cost: 0.34%.
+* **Fix**: if every handler is exactly `CurioStacksHandler` (not a subclass) and its `cachedModifiers` is empty, the
+  original's flag stays false, its multimap stays empty and it does nothing. In that case return at HEAD. Otherwise
+  run the original.
+* **Expected gain**: ~0.3% of the server thread (+ client).
+* **Disable**: `mixin.compat.CurioInventoryClearCachedIdleMixin=false`
+
+#### R2-4. `compat.efprogressivediff.MobEventsPlayerScanMixin`
+* **Target**: `com.minhhjjj.efprogressivediff.event.MobEvents.getDifficultyAround(Entity,int)D`, `@WrapOperation` of
+  `ServerLevel.getEntitiesOfClass(Class, AABB)`.
+* **Problem**: despite its name, `onMobFirstTick` is an `EntityTickEvent.Post` listener. It runs for every mob every
+  tick until the mob has been scaled (persistent tag `efprogressivediff:difficulty_stored`). Scaling needs a player
+  within `groupRadius` (128 in `config/efprogressivediff-common.toml`). So every mob farther than 128 blocks from all
+  players re-runs `getEntitiesOfClass(ServerPlayer.class, box.inflate(128))` every tick. That is an entity-section walk
+  over ~17x17 chunk columns (c2me filtering iterator, AVL subsets, ClassInstanceMultiMap). Cost: 0.76% (0.92%
+  unpatched).
+* **Fix**: `getEntitiesOfClass(cls, box)` returns the non-spectator entities of that class that are in tracked
+  (accessible) sections and whose bounding box intersects `box`. Every such ServerPlayer is in `ServerLevel.players()`:
+  players are added there and removed from there in the same `onTrackingStart/End` callbacks as for the visible entity
+  storage.
+  - If no player in `level.players()` intersects the box, the original result is empty, so return `List.of()`. The
+    caller only tests `isEmpty()` and returns -1.
+  - Otherwise the original query runs (same list, same order, so the floating-point sums are unchanged).
+* **Expected gain**: ~0.7% of the server thread. It grows with the number of loaded mobs far from players.
+* **Disable**: `mixin.compat.MobEventsPlayerScanMixin=false`
+* **Config alternative** (gameplay-relevant, not done): a smaller `groupRadius` shrinks the scan box, but changes
+  which players count for the scaling.
+
+#### R2-5. `compat.simplyswords.HivemindSwarmHasActiveMixin` (+ `EntityLookupBeeCountMixin`, `LevelEntityGetterAdapterAccessor`, duck `dev.flyaway.perf.compat.SimplySwordsBeeCount`)
+* **Targets** (all apply only when `simplyswords` is loaded):
+  - `net.sweenus.simplyswords.world.HivemindSwarmManager.hasActive(ServerLevel)Z`, `@Inject HEAD cancellable`;
+  - vanilla `net.minecraft.world.level.entity.EntityLookup.add/remove`, `@WrapOperation` of `Int2ObjectMap.put` /
+    `Int2ObjectMap.remove` (the `byId` map);
+  - an accessor for `LevelEntityGetterAdapter.visibleEntities`. IP has its own accessor on the same class; they do not
+    conflict.
+* **Problem**: Simply Swords injects `tickFieldManagers` at the HEAD of every `ServerLevel.tick`. Of its ~35
+  `hasActive` checks, only the Hivemind one iterates `level.getAllEntities()`: every entity of the dimension, every
+  tick, in all dimensions, looking for a swarm bee. Cost: 0.34% here (0.89% for all of tickFieldManagers), linear in
+  the number of loaded entities.
+* **Fix**: each `EntityLookup` keeps an exact count of the `SimplySwordsBeeEntity` values in its `byId` map. The count
+  is adjusted from the actual `put` / `remove` return values, so replaced or missed entries cannot skew it.
+  `ServerLevel.getAllEntities()` is `getEntities().getAll()`, which returns the `byId` values of the vanilla
+  `LevelEntityGetterAdapter`'s lookup (no mod overrides either; bytecode-checked).
+  - If the count is 0, the original loop cannot find a bee, so return false.
+  - In all other cases the original scan runs: bees present, a non-vanilla getter, or the counter mixin disabled.
+
+  Cost: one `instanceof` per entity add/remove.
+* **Expected gain**: ~0.3% of the server thread, more with more entities.
+* **Disable**: `mixin.compat.HivemindSwarmHasActiveMixin=false` (and/or `mixin.compat.EntityLookupBeeCountMixin=false`)
+
+Round 2 total: about **3.5-4% of the server thread** in the test world (~5% of busy tick time). All patches are exact.
+
+### Looked at and rejected (round 2)
+
+* **TACZ `onTickServerSide` (2.04%)**: every LivingEntity runs the shooter sub-ticks and 8 `SyncedDataKey.setValue`
+  calls (+ 1 `getValue` in `tickSprint`) per tick. `getServer().execute(...)` runs inline on the server thread (no task
+  queue). Each set/get does:
+  - an attachment `getData`;
+  - `registeredDataKeys.contains` + `dataMap.computeIfAbsent`, hashed with commons `Pair.hashCode`, i.e. two
+    ResourceLocation hashes over cached Strings.
+
+  Nothing is computed twice, and the values can change for any mob that picks up a gun. An exact early-out would need
+  to re-implement TACZ's shooter state machine. A hash-only micro-fix (an identity cache for the registered-key check)
+  would save < 0.3%. Not done.
+* **Relics Leafy Mantle `onLivingTick` (0.68%)**: calls `findEquippedCurios` for every living entity.
+  - For entities without a curios inventory, the cost is the Curios capability lookup itself (a
+    `CuriosApi.getEntitySlots` map lookup). Nothing cheaper can answer "has no curios".
+  - For entities with one, the slot scan is the actual question.
+
+  Rejected.
+* **Caelus (0.59%)**: removes and conditionally re-adds the elytra modifier on the fall-flying attribute every tick.
+  Skipping a remove+add pair would change when the attribute is marked dirty, and therefore when attribute sync packets
+  are sent. The rest is one attribute lookup + `canElytraFly`. Rejected.
+* **Mowzie's (0.72%), Aether armor (0.43%), Artifacts (0.38%), Reliquary mob charm (0.30%), Epic Fight preTick
+  (0.89%)**: each is a set of small, real per-entity checks or state ticks (data attachments, armor-set checks, dynamic
+  modifiers, the animator tick). None of them has a large redundant part.
+* **Mob AI (`GoalSelector.tick` 4.16% aggregated)**: dominated by vanilla goals: the player/entity searches of
+  `TemptGoal`, `NearestAttackableTargetGoal`, `BegGoal` and `LookAtPlayerGoal`, and `RandomStrollGoal` path creation.
+  The only modded goal above 0.1% is Mowzie's `AvoidEntityIfNotTamedGoal` (0.13%, a vanilla `AvoidEntityGoal`). Goal
+  evaluation is vanilla gameplay timing, and nothing modded dominates.
+* **`Entity.move` collision wrappers (9.7% aggregated `Entity.move`)**:
+  - The micimmptl `portalAwareCollide` wrapper's own body is a few field reads (`ip_getPortalCollisionHandler`,
+    `hasCollisionEntry`). Its 4.0% inclusive cost is what runs underneath: the vanilla + Lithium collide (3.0%) and
+    Sable's `SubLevelEntityCollision.collide` (0.93%).
+  - Sable's `moveInject` (1.49%) is vanilla `checkSupportingBlock`.
+  - Of Sable's 0.93%, **0.68% is micimmptl's `SubLevelGhostCollision.augmentIntersecting`**, mostly
+    `SubLevelClientDimensions.loadedLevelsAround(level)`. For EVERY collide of EVERY non-player entity, it builds a new
+    `ArrayList` of all server levels, then looks up every level's `SubLevelContainer` and iterates its sub-levels,
+    although there are usually none.
+  - Not patched here: micimmptl is the user's own mod and is rebuilt often. A `require = 1` mixin into it would crash
+    the game after the next micimmptl update.
+  - **Recommendation for the micimmptl source** (exact), either of:
+    - in `augmentIntersecting`, iterate `serverLevel.getServer().getAllLevels()` directly instead of calling
+      `loadedLevelsAround` on the server (no list);
+    - keep a static "number of live sub-levels across all containers" counter, updated where sub-levels are added and
+      removed, and return `found` immediately when it is 0 and nothing in `found` suppresses.
+
+    Expected ~0.5-0.7% of the server thread.
+  - Sable's own `collide` allocates a `LevelAccelerator` + `ObjectOpenHashSet` per call. An empty-scene early-out there
+    would have to replicate the end of Sable's collide (tracking/kick logic). Rejected for risk.
+* **`Level.tickBlockEntities` (4.93%)**: nothing removable.
+  - `BoundTickingBlockEntity.getPos` (1.15%) and Lithium `getCachedState` (1.06%) are the first touch of each block
+    entity (cache misses, safepoint bias).
+  - Lootr barrels/pots `ILootrBlockEntity.ticker` (0.64%) is Lootr's per-container tick (open state, client sync), real
+    work.
+* **`ServerChunkCache.tickChunks` (11.85%)**:
+  - `tickChunk` (9.13%) is vanilla random ticking (the 5.9% `FluidState.isRandomlyTicking` frame is the whole section
+    loop).
+  - Precipitation is 1.32%.
+  - `NaturalSpawner.createState` (2.0%) iterates all entities and calls `getFullChunk` per mob (c2me's filtering
+    iterator). createState could remember the last chunk, but entities of one chunk are not consecutive in the entity
+    list (id order), so < 0.4% is possible. Rejected.
+* **`LevelTicks` fluid spread** (3.5% unpatched, flowing lava near spawn): real scheduled-tick gameplay.
+* **IP**, both real work:
+  - `EntitySync.tick` (1.6%) is `ServerEntity.sendChanges` for tracked entities inside IP's packet redirection, i.e.
+    vanilla work;
+  - `CollisionHelper.updateCollidingPortalForWorld` (0.55%) is mostly `notifyCollidingPortals`, an entity box query
+    around each portal (0.30%).
+* **`waitUntilNextTick` (21%)**: idle time, including c2me's idle-time autosave. Not tick work.
+
+### For the lead to test (round 2)
+
+1. With `-Dflyaway.logMixins=true`, the nine new mixins apply:
+   - `AccessoriesEntityTickIdleMixin -> io.wispforest.accessories.impl.AccessoriesEventHandler`
+   - `AccessoriesHolderImplAccessor -> ...AccessoriesHolderImpl`
+   - `ExpandedSimpleContainerValidIndexMixin -> ...ExpandedSimpleContainer`
+   - `CurioInventoryClearCachedIdleMixin -> top.theillusivec4.curios.common.capability.CurioInventoryCapability`
+   - `CurioStacksHandlerCachedModsAccessor -> top.theillusivec4.curios.common.inventory.CurioStacksHandler`
+   - `MobEventsPlayerScanMixin -> com.minhhjjj.efprogressivediff.event.MobEvents`
+   - `EntityLookupBeeCountMixin -> net.minecraft.world.level.entity.EntityLookup`
+   - `HivemindSwarmHasActiveMixin -> net.sweenus.simplyswords.world.HivemindSwarmManager`
+   - `LevelEntityGetterAdapterAccessor -> net.minecraft.world.level.entity.LevelEntityGetterAdapter`
+2. Accessories:
+   - Equip and unequip an Aether accessory (gloves, a ring, a cape) in the accessories screen. The attribute/ability
+     must apply and be removed as before, and it must be visible in F5 and to other players.
+   - Re-log with an accessory equipped (the loadedFromTag path).
+   - If an Artifacts-equipped mob spawns (zombie/skeleton wearing an artifact), it must still show and drop the item.
+3. Curios: equip a curio that gives attributes (e.g. a Relics item) and re-log (the cached-modifier path). Check that
+   the attribute is applied exactly once (`/attribute`).
+4. EF Progressive Difficulty:
+   - Mobs that spawn within 128 blocks still get `efprogressivediff:difficulty_stored` (check with `/data get entity
+     <mob>` or the mod's difficulty command).
+   - Fly more than 128 blocks away and come back: far mobs get scaled once a player comes in range.
+5. Simply Swords: use a Hivemind-ability weapon. The swarm bees must still be ticked (follow and attack targets,
+   despawn when the owner leaves). In a Server-thread spark profile, `HivemindSwarmManager.hasActive` should disappear
+   when no bees exist.
+6. Profile again:
+   - `AccessoriesEventHandler.onLivingEntityTick` should drop from ~2.9% to well under 1%;
+   - `MobEvents.getDifficultyAround` and `clearCachedSlotModifiers` should be near 0.
