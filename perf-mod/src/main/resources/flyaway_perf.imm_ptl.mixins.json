@@ -9,6 +9,7 @@
   },
   "mixins": [],
   "client": [
+    "GlQueryObjectIdAccessor",
     "ImmPtlClientChunkMapFastGetMixin",
     "PortalGeometryInvalidateMixin",
     "PortalRenderInfoNoSyncWhenHiddenMixin",

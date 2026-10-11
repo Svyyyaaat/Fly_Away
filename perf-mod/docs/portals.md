@@ -101,8 +101,11 @@ the same spots. All patches below were written to sit on top of its mixins. They
   waiting. The query was still issued, so the next frame uses the fresh result.
 * **ON by default (lead decision)**: the user's 2026-10-03 profile spent **15.2%** of the render thread blocked in
   exactly this read (`renderAndDecideVisibility:237`), the 2026-10-11 one 1.27%. The cost of enabling it is that a
-  portal coming out from behind an occluder is drawn one frame late, for one frame. The mixin has priority 900 so it
-  is applied before micimmptl's ordinal-0 wrap of the same method (otherwise ordinals would shift). The brief's alternative of "render while the result is pending" was
+  portal coming out from behind an occluder is drawn one frame late, for one frame. Review fix: the skip only happens when last frame's
+  query result was actually available (non-blocking `GL_QUERY_RESULT_AVAILABLE` check via `GlQueryObjectIdAccessor`).
+  micimmptl serves a cached answer while last frame's result is pending; that cached "hidden" can be many frames old
+  when the GPU runs behind, so in that case IP's original read is kept and a portal can never stay hidden for longer
+  than one frame. The brief's alternative of "render while the result is pending" was
   rejected: it would render the whole world again (about 10% of the frame) for every occluded portal, which is much
   more than the 1.27% stall it would save. Ordinal 2 (first frame with no previous query) is not touched.
 * **Expected gain**: 1.3% to 15% depending on how many occluded portals are on screen, plus the CPU/GPU overlap it restores.

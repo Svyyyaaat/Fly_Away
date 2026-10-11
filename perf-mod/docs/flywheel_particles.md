@@ -44,6 +44,11 @@ All patches can be switched off in `config/flyaway_perf.properties`, either one 
 - **Disable:** `mixin.compat.EffekRendererIdleSkipMixin=false`
 
 ### 2. aaa_particles: advance effects once per frame, not once per portal pass (bug fix and CPU)
+
+> Lead note (review): this is an intentional *visible* change - with a portal on screen, Effekseer effects used to
+> run N times too fast (N = render passes); they now run at normal speed. Disable with
+> `mixin.compat.EffectDefinitionPortalDeltaMixin=false` to restore the old behaviour.
+
 - **Mixin:** `compat.aaa_particles.EffectDefinitionPortalDeltaMixin` (`@WrapMethod`), using `AaaDeltaTrackerFrameMixin`.
 - **Target:** `EffectDefinition#draw(Type, Vector3f, Vector3f, int, int, float[], float[], float, float, RenderTarget)`.
 - **Problem:** `deltaFrames` is computed once per frame (`DeltaTracker.run`, from `Minecraft.runTick`), but `draw`

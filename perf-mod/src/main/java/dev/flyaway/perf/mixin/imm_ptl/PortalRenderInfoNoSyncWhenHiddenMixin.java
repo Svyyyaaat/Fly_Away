@@ -3,6 +3,8 @@ package dev.flyaway.perf.mixin.imm_ptl;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.flyaway.perf.imm_ptl.ImmPtlTunables;
+import com.llamalad7.mixinextras.sugar.Local;
+import org.lwjgl.opengl.GL15;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import qouteall.imm_ptl.core.portal.PortalRenderInfo;
@@ -24,16 +26,24 @@ import qouteall.imm_ptl.core.render.GlQueryObject;
  * <p>With the tunable on, that branch answers "still hidden" (the previous frame's result) instead of stalling. The
  * query was still issued, so the next frame sees the fresh result: a portal emerging from behind an occluder is drawn
  * one frame late (the same latency IP already accepts once its stall budget is used up). That one frame is
- * the only (tiny) visual difference. Ordinal 2 (no previous query at all) is left alone.
+ * the only (tiny) visual difference. The skip only happens when last frame's "hidden" was freshly read (result
+ * available); when micimmptl served a stale cached answer we fall back to IP's original read (review finding). Ordinal 2 (no previous query at all) is left alone.
  */
-@Mixin(value = PortalRenderInfo.class, remap = false, priority = 900) // before micimmptl (ordinal 0 wrap), so ordinal 1 is the original this-frame fetch
+@Mixin(value = PortalRenderInfo.class, remap = false)
 public abstract class PortalRenderInfoNoSyncWhenHiddenMixin {
     @WrapOperation(
             method = "renderAndDecideVisibility",
             at = @At(value = "INVOKE", target = "Lqouteall/imm_ptl/core/render/GlQueryObject;fetchQueryResult()Z", ordinal = 1))
-    private static boolean flyaway$keepHiddenWithoutStall(GlQueryObject thisFrameQuery, Operation<Boolean> original) {
-        if (ImmPtlTunables.OCCLUSION_NO_SYNC_WHEN_HIDDEN) {
-            return false;
+    private static boolean flyaway$keepHiddenWithoutStall(GlQueryObject thisFrameQuery, Operation<Boolean> original,
+            @Local(ordinal = 0) GlQueryObject lastFrameQuery) {
+        // Only trust "hidden" when last frame's query result was really readable: micimmptl answers from a cached
+        // value while the result is still pending, and that cached "hidden" can be arbitrarily old (GPU frames behind).
+        // GL_QUERY_RESULT_AVAILABLE never blocks. Stale -> keep IP's original (stalling) read so correctness holds.
+        if (ImmPtlTunables.OCCLUSION_NO_SYNC_WHEN_HIDDEN && lastFrameQuery != null) {
+            int id = ((GlQueryObjectIdAccessor) lastFrameQuery).flyaway$id();
+            if (id > 0 && GL15.glGetQueryObjecti(id, GL15.GL_QUERY_RESULT_AVAILABLE) != 0) {
+                return false;
+            }
         }
         return original.call(thisFrameQuery);
     }
