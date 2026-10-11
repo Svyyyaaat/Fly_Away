@@ -1,6 +1,7 @@
 #!/bin/bash
 # bench.sh <label> <flyaway jar or "none"> [extra jvm args...]
 S=/tmp/claude-0/-home-user-Fly-Away/a22993c7-9e20-5b76-9e0a-8a48956651d4/scratchpad
+exec 9>$S/bench.lock; flock -w 3600 9 || { echo "bench lock busy"; exit 3; }
 label=$1; jar=$2; shift 2
 I=$S/inst
 rm -f $I/mods/flyaway_perf*.jar

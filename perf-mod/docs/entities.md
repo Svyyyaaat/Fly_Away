@@ -35,7 +35,10 @@ taken with this build. Our patches are written against it.
 
 ## Patches
 
-### 1. `compat.curios.CurioInventoryCapabilityKeyMixin` (common)
+### 1. `compat.curios.CurioInventoryCapabilityKeyMixin` (common) - DROPPED AT MERGE
+
+> Lead note: superseded by the identical `compat.curios.CurioInventoryItemKeyMixin` (see xaero_hud_tick.md #3), which covers both `findFirstCurio(Item)` and `findCurios(Item)`. Not shipped.
+
 * Target: `top.theillusivec4.curios.common.capability.CurioInventoryCapability#findFirstCurio(Item)`
 * Problem: computes `Curios.itemCacheKey(item.getDefaultInstance())` on every call: a new ItemStack (whose
   constructor runs owo's derived-component hook and Accessories' `restorePatch` hook, both with streams) and a stream
@@ -49,7 +52,10 @@ taken with this build. Our patches are written against it.
   call (Curios' cache never hit and grew); now it is stable - the intended Curios semantics.
 * Disable: `mixin.compat.CurioInventoryCapabilityKeyMixin=false`
 
-### 2. `compat.irons_spellbooks.CurioBaseItemEquippedCacheMixin` (common, active only on the client thread)
+### 2. `compat.irons_spellbooks.CurioBaseItemEquippedCacheMixin` - DROPPED AT MERGE
+
+> Lead note: superseded by `compat.irons_spellbooks.CurioBaseItemEquippedMemoMixin` (xaero_hud_tick.md #4). Not shipped.
+
 * Target: `io.redspace.ironsspellbooks.item.curios.CurioBaseItem#isEquippedBy(LivingEntity)` (`@WrapMethod`)
 * Problem: Iron's injects into `Entity.isInvisibleTo(Player)` and asks `INVISIBILITY_RING.isEquippedBy(player)` every
   time; Xaero's radar does this for every tracked entity, name-tag checks and Gliders' layer for every rendered entity -

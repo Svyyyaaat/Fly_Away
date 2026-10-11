@@ -57,7 +57,10 @@ All patches can be switched off in `config/flyaway_perf.properties`, either one 
   difference: effects seen while a portal is on screen no longer run 2x+ too fast.
 - **Disable:** `mixin.compat.EffectDefinitionPortalDeltaMixin=false`
 
-### 3. vanilla: chunk cache for `doAnimateTick`'s ambient-particle biome lookup
+### 3. vanilla: chunk cache for `doAnimateTick`'s ambient-particle biome lookup - DROPPED AT MERGE
+
+> Lead note: the same optimisation was written independently as `vanilla.clienttick.ClientLevelAnimateTickBiomeMixin` (xaero_hud_tick.md #5); only that one ships.
+
 - **Mixin:** `vanilla.particles.ClientLevelAnimateTickBiomeMixin` (`flyaway_perf.vanilla.mixins.json`, client).
   Helper: `dev.flyaway.perf.vanilla.particles.AnimateTickBiomeCache`.
 - **Target:** `ClientLevel#animateTick(III)V` (HEAD/RETURN) and the `getBiome(BlockPos)` call in
