@@ -10,6 +10,7 @@
   "mixins": [],
   "client": [
     "ComputeShaderSetupVaoStateMixin",
-    "LayerClassLookupMixin"
+    "LayerClassLookupMixin",
+    "DynamicSSBOUploadDedupMixin"
   ]
 }
