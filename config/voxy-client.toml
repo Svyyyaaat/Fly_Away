@@ -8,12 +8,12 @@ ingestEnabled = true
 #Example: 16 = 512 chunks render distance
 # Default: 16
 # Range: 2 ~ 64
-sectionRenderDistance = 16
+sectionRenderDistance = 8
 #Number of background threads for LOD processing
 #Default is based on CPU core count.
 # Default: 5
 # Range: 1 ~ 8
-serviceThreads = 5
+serviceThreads = 1
 #Render precision presets: 1024, 768, 512, 256 (default), 123, 64, 28. Lower values give more detail.
 # Default: 256.0
 # Range: 28.0 ~ 1024.0
