@@ -16,6 +16,7 @@
     "ImmPtlClientChunkMapFastGetMixin",
     "PortalGeometryInvalidateMixin",
     "PortalRenderInfoNoSyncWhenHiddenMixin",
+    "PortalViewStaleParticlesMixin",
     "SubLevelStraddlePortalCacheMixin"
   ]
 }

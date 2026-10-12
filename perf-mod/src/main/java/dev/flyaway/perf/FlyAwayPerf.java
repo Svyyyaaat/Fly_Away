@@ -14,6 +14,9 @@ public final class FlyAwayPerf {
 
     public FlyAwayPerf(IEventBus modBus) {
         LOGGER.info("Fly Away performance patches loaded ({} mixins active)", PerfConfig.appliedCount());
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            dev.flyaway.perf.debug.HitchLogger.init();
+        }
         if (FMLEnvironment.dist == Dist.CLIENT && System.getProperty("flyaway.harness") != null) {
             dev.flyaway.perf.harness.BenchHarness.init();
         }
