@@ -36,8 +36,13 @@
     "colorwheel.ClrwlEngineAccessor",
     "colorwheel.ClrwlIndirectDrawManagerAccessor",
     "colorwheel.ClrwlSkipEmptyTranslucentMixin",
+    "epicfight.EpicFightCameraPortalWallMixin",
+    "immersive_portals_core.CameraPortalWallMixin",
     "irons_spellbooks.CurioBaseItemEquippedMemoMixin",
     "ponder.PlacementClientItemMatchCacheMixin",
+    "shouldersurfing.ShoulderSurfingCameraAccessor",
+    "shouldersurfing.ShoulderSurfingPortalWallMixin",
+    "tp_shooting.TaczRecoilShoulderSurfingMixin",
     "veil.ShaderProgramUniformMapMixin"
   ]
 }
