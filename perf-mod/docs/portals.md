@@ -14,6 +14,9 @@ the same spots. All patches below were written to sit on top of its mixins. They
 | `PortalRenderInfoNonBlockingQueryMixin` (`@WrapOperation` fetchQueryResult ordinal 0) | `PortalRenderInfo.renderAndDecideVisibility` | We wrap a different call site (ordinal 1) and only when an opt-in tunable is set. |
 | none on `SubLevelStraddle` | micimmptl's own class | `@Pseudo` `@WrapMethod`. It is a no-op when micimmptl is absent. |
 
+Feature (not a perf patch): **portal postcards**. A portal seen through another portal under Iris shows a
+reprojected snapshot instead of nothing. See `docs/portal_postcards.md` (`imm_ptl.IrisCompatPostcardMixin`).
+
 ---
 
 ## Patches
