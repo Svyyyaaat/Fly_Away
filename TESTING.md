@@ -59,12 +59,11 @@ switch exactly that one off in `config/flyaway_perf.properties` (`mixin.<area>.<
     - **Hotbar:** select slot 6 and go through a cross-dimension portal; the selected slot should stay on 6.
     - **Fracture blocks:** do a big Epic Fight slam (Meteor Slam); there should be a smaller hitch than before and the blocks should look the same.
 
-14. **Round 5: postcards rework.** Shaders on; set `imm_ptl.postcards.debug=true` if you want to see which surface is which (it tints postcards magenta).
-    - Go through a portal into another dimension and walk a few blocks forward without turning around. Come back and look at that portal through another portal: you should see a slightly soft picture of what's on the other side, not a swirl.
-    - Walk sideways around a nested portal. The picture should shift smoothly. Near objects can smear a little, but nothing should shear or tear apart.
-    - Where the snapshot has no data (very steep angles), it should fade into a blurred version of the picture's edge, not into a purple swirl.
-    - A portal you have never been near shows a calm, slowly moving surface in the destination's fog colour.
-    - In F5 or Shoulder Surfing, walk out of a portal: your own character must not appear inside the snapshot later.
+14. **Round 6: paint portals.** Shaders on. Look at a portal through another portal.
+    - The inner portal should show an animated, pixelated paint swirl in the destination's colours: blue/green for the Overworld, orange/red for the Nether, purple/pale yellow for the End, light blue/gold for the Aether.
+    - Move sideways: the swirl should slide behind the frame (depth), not stick to it.
+    - Walk through the outer portal: the swirl should fade into the live view.
+    - If you prefer the old snapshot, set `imm_ptl.postcards.style=snapshot`. To change a dimension's colours, set `imm_ptl.postcards.palette.minecraft.overworld=4F9BE8,5DB33A,0E1A26` (main, second, gaps).
 
 ## Measuring
 

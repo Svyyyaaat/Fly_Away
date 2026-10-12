@@ -18,6 +18,40 @@ A portal Q that is seen through another portal P is therefore never processed. I
 it looks like an inactive portal. A real second layer would need a second full Iris pipeline pass (shadow,
 gbuffers, composites) for every nested portal. That is far too expensive.
 
+## Current default: "paint" style (round 6)
+
+After the second play test the reprojected snapshot still looked off: a snapshot taken from one viewpoint never
+convincingly passes for a live view. So the default no longer tries to imitate the destination at all:
+`imm_ptl.postcards.style=paint` (default) draws a stylised, animated surface instead.
+
+* Look: Balatro's background paint shader. It is a polar spin, a 5-step sin/cos domain warp and a 3-colour paint
+  ramp with highlights. It is reimplemented from the community ports (credits: LocalThunk's Balatro; ports by
+  xxidbr9, [godotshaders](https://godotshaders.com/shader/balatro-background-shader/), Shadertoy `XXtBRr`, which is
+  CC BY-NC-SA). Fine for a private modpack; do not ship it commercially.
+* Parallax: the paint is evaluated on a virtual plane `0.8 * max(half width, half height)` behind the portal, along
+  the view ray. It slides against the frame as you move, so the portal reads as a hole with depth, not a sticker.
+  The angle term is clamped at 0.25 so grazing views don't stretch to infinity.
+* Pixelated to 16 texels per block on that plane, to match Minecraft textures. Each portal gets its own phase
+  (UUID hash). The rim fades into the gap colour.
+* Palettes (c1 main, c2 second, c3 gaps), in `PortalPalette`:
+
+| destination | c1 | c2 | c3 |
+|---|---|---|---|
+| overworld | sky `4F9BE8` | grass `5DB33A` | night `0E1A26` |
+| the_nether | lava `E8541C` | crimson `8E1328` | basalt `1A0507` |
+| the_end | chorus `A35BD6` | end stone `E6E39A` | void `07040D` |
+| aether:the_aether | sky `8CCBFF` | glowstone gold `F2C94C` | deep sky `31507A` |
+| anything else | the destination fog colour's hue (saturation at least 0.55, value at least 0.75) | the hue rotated by 151 degrees, value 0.65 | the hue at value 0.1 |
+
+  For "anything else", the destination fog colour is read when that client world is loaded. Otherwise the hue comes
+  from a hash of the dimension id. Override any dimension with
+  `imm_ptl.postcards.palette.<namespace>.<path>=RRGGBB,RRGGBB,RRGGBB`.
+* No captures run in this style: no direct captures, no main-view captures, and no postcard textures. Cost per
+  nested portal: about 15 uniforms and one draw, plus about 40 ALU-heavy ops per covered pixel.
+* The fade from a nested portal to the live view (walking through the outer portal) still runs, with the paint
+  surface fading out.
+* `imm_ptl.postcards.style=snapshot` brings back everything below.
+
 ## Rework after the first real play test
 
 What the user saw: in normal play the nested portal was mostly the purple swirl, with a sheared, partial fragment of
@@ -298,6 +332,8 @@ Original description:
 | key | default | meaning |
 |---|---|---|
 | `imm_ptl.postcards` | true | master switch |
+| `imm_ptl.postcards.style` | paint | `paint` (stylised Balatro-like surface in the destination's colours) or `snapshot` (reprojected snapshot) |
+| `imm_ptl.postcards.palette.<ns>.<path>` | (built-in) | paint colours for one destination dimension: `RRGGBB,RRGGBB,RRGGBB` (main, second, gaps) |
 | `imm_ptl.postcards.resolution` | 768 | postcard long side in pixels (128..2048) |
 | `imm_ptl.postcards.refreshFrames` | 4 | re-capture a directly visible portal at most every N frames |
 | `imm_ptl.postcards.maxMemoryMB` | 64 | GPU memory cap, LRU (about 10 postcards at 768) |

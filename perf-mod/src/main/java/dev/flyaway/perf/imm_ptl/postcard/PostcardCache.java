@@ -63,6 +63,7 @@ public final class PostcardCache {
         // fallback tint
         float tintR = 0.45f, tintG = 0.25f, tintB = 0.7f;
         int tintFrame = Integer.MIN_VALUE / 2;
+        int fog = -1;                   // destination fog colour last seen, -1 = unknown
 
         Entry(UUID id) {
             this.id = id;
@@ -170,6 +171,7 @@ public final class PostcardCache {
     }
 
     private static void clearNow() {
+        PortalPalette.clear();
         for (Entry e : ENTRIES.values()) e.releaseGl();
         ENTRIES.clear();
     }

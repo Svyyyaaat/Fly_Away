@@ -51,6 +51,11 @@ public final class PerfConfig {
         return Boolean.parseBoolean(PROPS.getProperty(key, Boolean.toString(def)));
     }
 
+    public static String getString(String key, String def) {
+        String v = PROPS.getProperty(key);
+        return v == null ? def : v.trim();
+    }
+
     public static int getInt(String key, int def) {
         try {
             return Integer.parseInt(PROPS.getProperty(key, Integer.toString(def)).trim());

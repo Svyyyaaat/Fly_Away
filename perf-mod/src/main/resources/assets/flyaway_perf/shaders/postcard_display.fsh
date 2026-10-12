@@ -11,7 +11,12 @@ in vec3 vRel;
 uniform sampler2D uColor;     // postcard colour, premultiplied, alpha = valid (mipmapped)
 uniform sampler2D uDepth;     // postcard disparity: r = 1/distance * valid, g = valid (mipmapped)
 uniform float uDispLod;       // mip level of the depth proxy
-uniform int   uMode;          // 0 = postcard, 1 = membrane only (no capture yet)
+uniform int   uMode;          // 0 = postcard, 1 = membrane only (no capture yet), 2 = paint
+uniform vec3  uC1;            // paint colours (mode 2): main, second, gaps
+uniform vec3  uC2;
+uniform vec3  uC3;
+uniform vec3  uNormal;        // Q's normal (points to the side the viewer is on)
+uniform float uSeed;          // per-portal phase
 uniform mat3  uQLin;          // linear part of Q's transform (rotation, scale, mirror)
 uniform vec3  uQOff;          // Q.transformPoint(currentCamera) - captureCamera
 uniform mat4  uCapVP;         // capture projection * view (relative to the capture camera)
@@ -151,11 +156,54 @@ vec4 reproject() {
     return outside(c0.w > 0.05 ? c0 : uCapVP * vec4(dir, 0.0), 0.75);
 }
 
+// Balatro-style paint (after LocalThunk's Balatro background shader, as published in community ports): polar spin,
+// a 5-step sin/cos domain warp, and a 3-colour "paint" ramp. Evaluated on a virtual plane PAINT_DEPTH behind the
+// portal (parallax: it slides against the frame as you move) and pixelated to Minecraft texels on that plane.
+const float SPIN_SPEED = 3.0;    // warp animation speed (the game's background uses 7, a bit busy for a portal)
+const float SPIN_AMOUNT = 0.25;
+const float CONTRAST = 3.0;
+const float LIGHTING = 0.35;
+const float TEXELS = 16.0;       // pixel grid per block on the virtual plane
+
+vec3 paint(vec2 b) {
+    // b: position on the virtual plane in blocks, origin = portal centre
+    b = floor(b * TEXELS + 0.5) / TEXELS;
+    float scale = max(uHalfSize.x, uHalfSize.y) * 2.4;
+    vec2 uv = b / scale;
+    float uvLen = length(uv);
+    float spin = uTime * 0.18 + uSeed;
+    float ang = atan(uv.y, uv.x) + spin - 20.0 * (SPIN_AMOUNT * uvLen + (1.0 - SPIN_AMOUNT));
+    uv = vec2(uvLen * cos(ang), uvLen * sin(ang)) * 30.0;
+    float t = uTime * SPIN_SPEED + uSeed * 11.0;
+    vec2 uv2 = vec2(uv.x + uv.y);
+    for (int i = 0; i < 5; i++) {
+        uv2 += sin(max(uv.x, uv.y)) + uv;
+        uv += 0.5 * vec2(cos(5.1123314 + 0.353 * uv2.y + t * 0.131121), sin(uv2.x - 0.113 * t));
+        uv -= 1.0 * cos(uv.x + uv.y) - 1.0 * sin(uv.x * 0.711 - uv.y);
+    }
+    float cm = 0.25 * CONTRAST + 0.5 * SPIN_AMOUNT + 1.2;
+    float res = min(2.0, max(0.0, length(uv) * 0.035 * cm));
+    float c1p = max(0.0, 1.0 - cm * abs(1.0 - res));
+    float c2p = max(0.0, 1.0 - cm * abs(res));
+    float c3p = 1.0 - min(1.0, c1p + c2p);
+    float light = (LIGHTING - 0.2) * max(c1p * 5.0 - 4.0, 0.0) + LIGHTING * max(c2p * 5.0 - 4.0, 0.0);
+    vec3 c = (0.3 / CONTRAST) * uC1 + (1.0 - 0.3 / CONTRAST) * (uC1 * c1p + uC2 * c2p + uC3 * c3p) + light;
+    return clamp(c, 0.0, 1.0);
+}
+
+vec3 paintSurface() {
+    vec3 d = normalize(vRel);
+    float depth = max(uHalfSize.x, uHalfSize.y) * 0.8;
+    float cosI = max(abs(dot(d, uNormal)), 0.25);
+    vec3 p = vRel + d * (depth / cosI) - uOriginRel;
+    return paint(vec2(dot(p, uAxisW), dot(p, uAxisH)));
+}
+
 void main() {
     if (dot(uClip.xyz, vRel) + uClip.w < 0.0) discard;
     vec3 d = vRel - uOriginRel;
     vec2 l = vec2(dot(d, uAxisW) / uHalfSize.x, dot(d, uAxisH) / uHalfSize.y);
-    vec3 col = membrane(l);
+    vec3 col = uMode == 2 ? paintSurface() : membrane(l);
     if (uMode == 0) {
         vec4 pc = reproject();
         col = mix(col, pc.rgb, clamp(pc.w * uMix, 0.0, 1.0));
@@ -163,7 +211,12 @@ void main() {
     // Subtle edge vignette so the surface reads as a portal.
     float e = max(abs(l.x), abs(l.y));
     float v = smoothstep(0.80, 1.02, e);
-    col = mix(col, col * 0.7 + uTint * 0.12, v * 0.45);
+    if (uMode == 2) {
+        // Depth cue at the rim: the paint sinks into the gap colour towards the frame.
+        col = mix(col, uC3, smoothstep(0.70, 1.02, e) * 0.55);
+    } else {
+        col = mix(col, col * 0.7 + uTint * 0.12, v * 0.45);
+    }
     if (uDebug != 0) col = mix(col, vec3(1.0, 0.0, 1.0), 0.45);
     oColor = vec4(col, uAlpha);
     gl_FragDepth = max(gl_FragCoord.z - uDepthBias, 0.0);

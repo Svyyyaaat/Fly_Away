@@ -30,7 +30,7 @@ final class PostcardGl {
     static int cSrcColor, cSrcDepth, cSrcRect, cSrcSize, cDstSize, cProjAB, cInvVP, cBodyA, cBodyB, cMinDist;
     // display uniforms
     static int dViewProj, dColor, dDepth, dMode, dQLin, dQOff, dCapVP, dCapRect, dTexScale, dTexelHalf, dCapAB, dClip,
-            dOriginRel, dAxisW, dAxisH, dHalfSize, dTint, dTime, dAlpha, dMix, dDepthBias, dDebug, dDispLod;
+            dOriginRel, dAxisW, dAxisH, dHalfSize, dTint, dTime, dAlpha, dMix, dDepthBias, dDebug, dDispLod, dC1, dC2, dC3, dNormal, dSeed;
 
     /** Triangle vertices (x,y,z camera relative), grown on demand, never freed (a few KB). */
     static FloatBuffer mesh = MemoryUtil.memAllocFloat(3 * 3 * 64);
@@ -78,6 +78,11 @@ final class PostcardGl {
             dDepthBias = glGetUniformLocation(p, "uDepthBias");
             dDebug = glGetUniformLocation(p, "uDebug");
             dDispLod = glGetUniformLocation(p, "uDispLod");
+            dC1 = glGetUniformLocation(p, "uC1");
+            dC2 = glGetUniformLocation(p, "uC2");
+            dC3 = glGetUniformLocation(p, "uC3");
+            dNormal = glGetUniformLocation(p, "uNormal");
+            dSeed = glGetUniformLocation(p, "uSeed");
 
             emptyVao = glGenVertexArrays();
             meshVao = glGenVertexArrays();

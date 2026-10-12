@@ -93,7 +93,7 @@ public final class PostcardRenderer {
             Matrix4f proj = RenderSystem.getProjectionMatrix();
             Vec3 cam = CHelper.getCurrentCameraPos();
             lastPassFrame = frame;
-            boolean captureDue = captureDue(outer, frame) && screenRect(outer, modelView, proj, cam)
+            boolean captureDue = !ImmPtlTunables.POSTCARD_PAINT && captureDue(outer, frame) && screenRect(outer, modelView, proj, cam)
                     && !keepBetterCapture(outer, rectCoverage, now);
             // Gate on the configured layer limit, not PortalRendering.getMaxPortalLayer(): the latter drops to 1 while
             // IP's lag detector (RenderStates.isLaggy) is on, but a postcard costs one textured quad, not a world pass.
@@ -326,7 +326,7 @@ public final class PostcardRenderer {
      * comes first in a frame without portal passes does the work).
      */
     public static void onMainViewFinished() {
-        if (!ImmPtlTunables.POSTCARDS || PostcardGl.isFailed() || PortalRendering.isRendering()) return;
+        if (!ImmPtlTunables.POSTCARDS || ImmPtlTunables.POSTCARD_PAINT || PostcardGl.isFailed() || PortalRendering.isRendering()) return;
         // Postcards are only shown by the Iris compatibility renderer (without shaders IP renders real layers).
         if (!(qouteall.imm_ptl.core.IPCGlobal.renderer instanceof qouteall.imm_ptl.core.compat.iris_compatibility.IrisCompatibilityPortalRenderer)) return;
         int frame = RenderStates.frameIndex;
@@ -450,7 +450,7 @@ public final class PostcardRenderer {
         try {
             if (e.fadeStartNanos == 0) {
                 if (wasLive || frame - e.lastNestedFrame > RECENT_FRAMES || ImmPtlTunables.POSTCARD_FADE_MS == 0) return;
-                if (!postcardValid(e, q)) return;
+                if (!ImmPtlTunables.POSTCARD_PAINT && !postcardValid(e, q)) return;
                 e.fadeStartNanos = now;
                 statFades++;
                 if (ImmPtlTunables.POSTCARD_DEBUG) FlyAwayPerf.LOGGER.info("[postcards] fade postcard -> live view for {}", q.getUUID());
@@ -517,9 +517,20 @@ public final class PostcardRenderer {
     private static void drawSurface(Portal q, Vec3 cam, int frame, long now, float alpha, boolean nested) {
         PostcardCache.Entry e = PostcardCache.getOrCreate(q.getUUID());
         bindEntity(e, q);
-        updateTint(e, q, frame);
-        boolean valid = postcardValid(e, q);
-        glUniform1i(PostcardGl.dMode, valid ? 0 : 1);
+        int fog = updateTint(e, q, frame);
+        boolean paint = ImmPtlTunables.POSTCARD_PAINT;
+        boolean valid = !paint && postcardValid(e, q);
+        glUniform1i(PostcardGl.dMode, paint ? 2 : valid ? 0 : 1);
+        if (paint) {
+            float[] pal = PortalPalette.get(q.getDestDim(), fog);
+            glUniform3f(PostcardGl.dC1, pal[0], pal[1], pal[2]);
+            glUniform3f(PostcardGl.dC2, pal[3], pal[4], pal[5]);
+            glUniform3f(PostcardGl.dC3, pal[6], pal[7], pal[8]);
+            Vec3 nrm = q.getNormal();
+            glUniform3f(PostcardGl.dNormal, (float) nrm.x, (float) nrm.y, (float) nrm.z);
+            glUniform1f(PostcardGl.dSeed, (q.getUUID().hashCode() & 0xFFFF) / 65536f * 6.2831853f);
+            e.lastUsedNanos = now;
+        }
         glUniform1f(PostcardGl.dAlpha, alpha);
         if (valid) {
             if (e.firstShownNanos == 0) e.firstShownNanos = now;
@@ -562,7 +573,7 @@ public final class PostcardRenderer {
         }
         if (nested) {
             e.lastNestedFrame = frame;
-            if (valid) statPostcard++;
+            if (valid || paint) statPostcard++;
             else statSwirl++;
         }
         if (ImmPtlTunables.POSTCARD_DEBUG && debugLines < 150) {
@@ -586,8 +597,8 @@ public final class PostcardRenderer {
     }
 
     /** Destination fog colour (cheap, refreshed every 100 frames), blended a little towards portal purple. */
-    private static void updateTint(PostcardCache.Entry e, Portal q, int frame) {
-        if (frame - e.tintFrame < 100 && frame >= e.tintFrame) return;
+    private static int updateTint(PostcardCache.Entry e, Portal q, int frame) {
+        if (frame - e.tintFrame < 100 && frame >= e.tintFrame) return e.fog;
         e.tintFrame = frame;
         int fog = -1;
         if (ClientWorldLoader.getIsInitialized()) {
@@ -598,6 +609,7 @@ public final class PostcardRenderer {
                 break;
             }
         }
+        e.fog = fog;
         if (fog == -1) {
             if (q.getDestDim() == Level.NETHER) fog = 0x330808;
             else if (q.getDestDim() == Level.END) fog = 0x0A0814;
@@ -607,6 +619,7 @@ public final class PostcardRenderer {
         e.tintR = r * 0.85f + 0.55f * 0.15f;
         e.tintG = g * 0.85f + 0.30f * 0.15f;
         e.tintB = b * 0.85f + 0.85f * 0.15f;
+        return e.fog;
     }
 
     private static void debugSummary(long now) {

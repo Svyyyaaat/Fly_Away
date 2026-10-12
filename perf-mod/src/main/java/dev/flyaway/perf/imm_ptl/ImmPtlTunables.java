@@ -26,6 +26,12 @@ public final class ImmPtlTunables {
     public static final int POSTCARD_MAX_MEMORY_MB = Math.max(4, PerfConfig.getInt("imm_ptl.postcards.maxMemoryMB", 64));
     /** {@code imm_ptl.postcards.fadeMs} (default 350): cross-fade time postcard -> live view and swirl -> postcard. */
     public static final int POSTCARD_FADE_MS = Math.max(0, PerfConfig.getInt("imm_ptl.postcards.fadeMs", 350));
+    /**
+     * {@code imm_ptl.postcards.style} (default {@code paint}): what a portal seen through another portal shows.
+     * {@code paint} = an animated Balatro-style paint swirl in the destination dimension's colours, with parallax
+     * (no captures at all); {@code snapshot} = the reprojected snapshot of the portal's view (round 5).
+     */
+    public static final boolean POSTCARD_PAINT = !"snapshot".equalsIgnoreCase(PerfConfig.getString("imm_ptl.postcards.style", "paint"));
     /** {@code imm_ptl.postcards.debug} (default false): tint postcards magenta and log captures/draws. */
     public static final boolean POSTCARD_DEBUG = PerfConfig.getBool("imm_ptl.postcards.debug", false);
 }
