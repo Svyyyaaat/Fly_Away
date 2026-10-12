@@ -20,6 +20,7 @@ import org.joml.Vector4f;
 import org.lwjgl.system.MemoryUtil;
 import qouteall.imm_ptl.core.CHelper;
 import qouteall.imm_ptl.core.ClientWorldLoader;
+import qouteall.imm_ptl.core.IPGlobal;
 import qouteall.imm_ptl.core.portal.Portal;
 import qouteall.imm_ptl.core.render.context_management.PortalRendering;
 import qouteall.imm_ptl.core.render.context_management.RenderStates;
@@ -54,7 +55,8 @@ public final class PostcardRenderer {
     private static final float FADE_DEPTH_BIAS = 1.0e-5f;
 
     // debug statistics
-    private static long statCaptures, statPostcard, statSwirl, statFades, nextStatNanos;
+    private static long statCaptures, statPostcard, statSwirl, statFades, statKept, nextStatNanos;
+    private static final long KEEP_COMPLETE_S = 20;
     private static int debugLines;
 
     private PostcardRenderer() {}
@@ -78,8 +80,14 @@ public final class PostcardRenderer {
         try {
             PostcardCache.checkGeneration(IrisGeneration.get());
             PostcardCache.sweep(now);
-            boolean captureDue = captureDue(outer, frame);
-            List<Portal> nested = PortalRendering.getMaxPortalLayer() >= 2 ? lister.flyaway$portalsToRender(modelView) : List.of();
+            Matrix4f proj = RenderSystem.getProjectionMatrix();
+            Vec3 cam = CHelper.getCurrentCameraPos();
+            boolean captureDue = captureDue(outer, frame) && screenRect(outer, modelView, proj, cam)
+                    && !keepMoreCompleteCapture(outer, now);
+            // Gate on the configured layer limit, not PortalRendering.getMaxPortalLayer(): the latter drops to 1 while
+            // IP's lag detector (RenderStates.isLaggy) is on, but a postcard costs one textured quad, not a world pass.
+            boolean gate = IPGlobal.maxPortalLayer >= 2;
+            List<Portal> nested = gate ? lister.flyaway$portalsToRender(modelView) : List.of();
             boolean anyNested = false;
             for (int i = 0, n = nested.size(); i < n; i++) {
                 if (drawable(nested.get(i), outer)) {
@@ -87,10 +95,12 @@ public final class PostcardRenderer {
                     break;
                 }
             }
-            if (!captureDue && !anyNested) return;
+            if (ImmPtlTunables.POSTCARD_DEBUG) PostcardDiagnostics.onPassEnd(outer, nested, gate, modelView, proj, cam, now);
+            if (!captureDue && !anyNested) {
+                debugSummary(now);
+                return;
+            }
             if (!PostcardGl.ensure()) return;
-            Matrix4f proj = RenderSystem.getProjectionMatrix();
-            Vec3 cam = CHelper.getCurrentCameraPos();
             RenderTarget main = Minecraft.getInstance().getMainRenderTarget();
             IrisFboDeferral.flush();
             STATE.save();
@@ -106,7 +116,8 @@ public final class PostcardRenderer {
         }
     }
 
-    private static boolean drawable(Portal q, Portal outer) {
+    /** Filter for nested drawing (also used by the diagnostics). */
+    static boolean drawable(Portal q, Portal outer) {
         return q != null && !q.getIsGlobal() && !q.isFuseView() && q.isPortalValid();
     }
 
@@ -123,21 +134,27 @@ public final class PostcardRenderer {
         return e.fadeStartNanos != 0 || (frame - e.lastLiveFrame > RECENT_FRAMES && frame - e.lastNestedFrame <= RECENT_FRAMES);
     }
 
-    private static void capture(Portal p, RenderTarget main, Matrix4f modelView, Matrix4f proj, Vec3 cam, int frame, long now) {
-        int W = main.width, H = main.height;
-        if (W <= 0 || H <= 0) return;
+    // Screen rectangle of the portal about to be captured, filled by screenRect().
+    private static float rectX0, rectY0, rectX1, rectY1, rectCoverage;
+
+    /**
+     * Screen rectangle (NDC, clamped to the screen) of the portal's destination side seen from the pass camera, and the
+     * fraction of the unclamped rectangle that is on screen. Whole screen (coverage 1) when a corner is behind the
+     * camera. Returns false when no part of it is on screen.
+     */
+    private static boolean screenRect(Portal p, Matrix4f modelView, Matrix4f proj, Vec3 cam) {
         VIEW_PROJ.set(proj).mul(modelView);
-        // Screen rectangle of the portal's destination side, seen from the pass camera.
         double hw = p.getWidth() / 2, hh = p.getHeight() / 2;
-        float x0 = 1, y0 = 1, x1 = -1, y1 = -1;
-        boolean full = false;
+        float x0 = Float.MAX_VALUE, y0 = Float.MAX_VALUE, x1 = -Float.MAX_VALUE, y1 = -Float.MAX_VALUE;
         for (int i = 0; i < 4; i++) {
             Vec3 c = p.transformPoint(p.getPointInPlane((i & 1) == 0 ? -hw : hw, (i & 2) == 0 ? -hh : hh));
             V.set((float) (c.x - cam.x), (float) (c.y - cam.y), (float) (c.z - cam.z), 1f);
             VIEW_PROJ.transform(V);
             if (V.w < 0.05f) {
-                full = true;
-                break;
+                rectX0 = rectY0 = -1f;
+                rectX1 = rectY1 = 1f;
+                rectCoverage = 1f;
+                return true;
             }
             float nx = V.x / V.w, ny = V.y / V.w;
             x0 = Math.min(x0, nx);
@@ -145,14 +162,39 @@ public final class PostcardRenderer {
             x1 = Math.max(x1, nx);
             y1 = Math.max(y1, ny);
         }
-        if (full) {
-            x0 = y0 = -1;
-            x1 = y1 = 1;
-        }
-        int px0 = Math.max(0, (int) Math.floor((Math.max(-1f, x0) * 0.5f + 0.5f) * W) - 2);
-        int py0 = Math.max(0, (int) Math.floor((Math.max(-1f, y0) * 0.5f + 0.5f) * H) - 2);
-        int px1 = Math.min(W, (int) Math.ceil((Math.min(1f, x1) * 0.5f + 0.5f) * W) + 2);
-        int py1 = Math.min(H, (int) Math.ceil((Math.min(1f, y1) * 0.5f + 0.5f) * H) + 2);
+        float cx0 = Math.max(-1f, x0), cy0 = Math.max(-1f, y0), cx1 = Math.min(1f, x1), cy1 = Math.min(1f, y1);
+        if (cx1 <= cx0 || cy1 <= cy0) return false;
+        double full = (double) (x1 - x0) * (y1 - y0);
+        rectCoverage = full <= 0 ? 0f : (float) Math.min(1.0, (double) (cx1 - cx0) * (cy1 - cy0) / full);
+        rectX0 = cx0;
+        rectY0 = cy0;
+        rectX1 = cx1;
+        rectY1 = cy1;
+        return true;
+    }
+
+    /**
+     * A portal that is half off-screen gives a postcard that covers only part of the portal; reprojecting it later
+     * leaves the rest to the swirl fallback (this is what the first real-client test showed: the last warm-up capture
+     * of Q was cut by the screen edge). So a less complete capture does not replace a more complete one for
+     * {@value #KEEP_COMPLETE_S} s. The content goes a little stale instead; reprojection keeps the geometry right.
+     */
+    private static boolean keepMoreCompleteCapture(Portal p, long now) {
+        PostcardCache.Entry e = PostcardCache.get(p.getUUID());
+        if (e == null || !postcardValid(e, p)) return false;
+        if (rectCoverage + 0.02f >= e.coverage || now - e.capturedNanos > KEEP_COMPLETE_S * 1_000_000_000L) return false;
+        statKept++;
+        return true;
+    }
+
+    private static void capture(Portal p, RenderTarget main, Matrix4f modelView, Matrix4f proj, Vec3 cam, int frame, long now) {
+        int W = main.width, H = main.height;
+        if (W <= 0 || H <= 0) return;
+        VIEW_PROJ.set(proj).mul(modelView);
+        int px0 = Math.max(0, (int) Math.floor((rectX0 * 0.5f + 0.5f) * W) - 2);
+        int py0 = Math.max(0, (int) Math.floor((rectY0 * 0.5f + 0.5f) * H) - 2);
+        int px1 = Math.min(W, (int) Math.ceil((rectX1 * 0.5f + 0.5f) * W) + 2);
+        int py1 = Math.min(H, (int) Math.ceil((rectY1 * 0.5f + 0.5f) * H) + 2);
         int pw = px1 - px0, ph = py1 - py0;
         if (pw < 4 || ph < 4) return;
 
@@ -205,13 +247,15 @@ public final class PostcardRenderer {
         e.destY = d.y;
         e.destZ = d.z;
         e.capturedFrame = frame;
+        e.capturedNanos = now;
+        e.coverage = rectCoverage;
         e.captured = true;
         e.lastUsedNanos = now;
         statCaptures++;
-        if (ImmPtlTunables.POSTCARD_DEBUG && debugLines < 40) {
+        if (ImmPtlTunables.POSTCARD_DEBUG && debugLines < 150) {
             debugLines++;
-            FlyAwayPerf.LOGGER.info("[postcards] capture {} -> {} rect {}x{} at {},{} into {}x{} (frame {})",
-                    p.getUUID(), p.getDestDim().location(), pw, ph, px0, py0, uw, uh, frame);
+            FlyAwayPerf.LOGGER.info("[postcards] capture {} -> {} rect {}x{} at {},{} into {}x{} coverage {} (frame {})",
+                    p.getUUID(), p.getDestDim().location(), pw, ph, px0, py0, uw, uh, String.format("%.2f", rectCoverage), frame);
         }
     }
 
@@ -360,7 +404,7 @@ public final class PostcardRenderer {
             if (valid) statPostcard++;
             else statSwirl++;
         }
-        if (ImmPtlTunables.POSTCARD_DEBUG && debugLines < 40) {
+        if (ImmPtlTunables.POSTCARD_DEBUG && debugLines < 150) {
             debugLines++;
             FlyAwayPerf.LOGGER.info("[postcards] draw {} {} as {} (alpha {}, {} vertices, frame {})", nested ? "nested" : "fade-out",
                     q.getUUID(), valid ? "postcard" : "swirl", alpha, verts, frame);
@@ -407,9 +451,9 @@ public final class PostcardRenderer {
     private static void debugSummary(long now) {
         if (!ImmPtlTunables.POSTCARD_DEBUG || now < nextStatNanos) return;
         nextStatNanos = now + 5_000_000_000L;
-        FlyAwayPerf.LOGGER.info("[postcards] last 5 s: captures={} nested draws postcard={} swirl={} fades={} entries={}",
-                statCaptures, statPostcard, statSwirl, statFades, PostcardCache.size());
-        statCaptures = statPostcard = statSwirl = statFades = 0;
+        FlyAwayPerf.LOGGER.info("[postcards] last 5 s: captures={} (skipped, kept a more complete one: {}) nested draws postcard={} swirl={} fades={} entries={}",
+                statCaptures, statKept, statPostcard, statSwirl, statFades, PostcardCache.size());
+        statCaptures = statPostcard = statSwirl = statFades = statKept = 0;
     }
 
     /** Collects portal surface triangles into {@link PostcardGl#mesh}; reused, no per-call allocation. */

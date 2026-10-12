@@ -47,6 +47,10 @@ Steps:
   * the captured NDC rectangle;
   * the portal's destination.
 * Refresh: at most every `imm_ptl.postcards.refreshFrames` frames per portal (default 4).
+* Completeness: the capture stores the fraction of the portal's screen rectangle that was on screen (`coverage`). A
+  capture that is less complete than the stored one (portal partly off-screen) does not replace it for 20 s. Without
+  this, a glance that put the portal at the screen edge replaced a full postcard with a sliver, and the nested
+  portal then showed mostly the swirl fallback (this happened in the first real-client test).
 * Why a draw and not `glBlitFramebuffer`:
   * The brief suggested blit or `glCopyImageSubData`. A depth blit needs identical depth formats on both sides, and
     the main target's depth format depends on IP's stencil toggling and on the driver. It can also only copy
@@ -72,7 +76,9 @@ Key and lifetime:
 * Nested portals come from IP's own `getPortalsToRender(modelView)`, called in the pass (client.level is the
   destination world there). It applies the same visibility, frustum and range filters, `cannotRenderInMe` (the
   outer portal's reverse) and `PortalRenderingPredicateEvent` that IP uses for real nested layers.
-* Global (world-wrapping) portals and fuse-view portals are skipped. Nothing is drawn if `maxPortalLayer < 2`.
+* Global (world-wrapping) portals and fuse-view portals are skipped. Nothing is drawn if IP's configured `maxPortalLayer < 2`. The gate reads `IPGlobal.maxPortalLayer`, not
+  `PortalRendering.getMaxPortalLayer()`: the latter returns 1 while IP's lag detector (`RenderStates.isLaggy`) is on,
+  but a postcard costs one textured quad, not a world pass.
 * Each nested portal Q is drawn into the main target with `Portal.renderViewAreaMesh`. This is the same mesh IP's
   `ViewAreaRenderer` uses, so special shapes work.
 * Draw state:
@@ -204,33 +210,66 @@ Reprojection (`postcard_display.fsh`):
 | `imm_ptl.postcards.refreshFrames` | 4 | re-capture a directly visible portal at most every N frames |
 | `imm_ptl.postcards.maxMemoryMB` | 64 | GPU memory cap, LRU |
 | `imm_ptl.postcards.fadeMs` | 350 | swirl->postcard and postcard->live fade time (0 = off) |
-| `imm_ptl.postcards.debug` | false | tint postcards magenta (45%) and log captures, draws and a 5 s summary |
+| `imm_ptl.postcards.debug` | false | tint postcards magenta (45%); log captures, draws, a 5 s summary and (every 3 s, max 80) a per-pass report of every portal within 96 blocks of the pass camera with IP's/our accept or reject reason |
 | `mixin.imm_ptl.IrisCompatPostcardMixin` | true | remove the hooks entirely; `area.imm_ptl=false` also works |
 
 ## Test scene (lead)
 
-All command portals are in the overworld, so the scene works in a fresh harness world:
+### First real-client run (K_postcards), what it showed
 
-* P is 6 blocks south of the player and faces them. Its destination is 6 blocks north of the player, rotated 180
-  degrees, so P works like a rear-view window: through P you see what is behind you.
-* Q is 8 blocks north of the player and faces them. It leads 120 blocks north and 25 blocks up.
-* Looking south (harness shot 0, yaw 0) you see Q inside P. Looking north (shot 2, yaw 180) you see Q directly,
-  which captures its postcard.
-* The harness spins the camera during warm-up, so Q is captured many times before the shots.
+* The nested path did run. `K_postcards.log` has `draw nested ... as swirl` at frames 3-5 (warm-up, no postcard yet)
+  and `draw nested ... as postcard` from frame 21 on, with summaries of `postcard=2..5` from 09:27:08 to 09:28:42
+  (shot 0). The summaries with `postcard=0` are shots 1-4, where P is not on screen, so that is expected.
+* The purple square with a white border inside P in shot 0 is that nested draw. The white border is P's own live
+  view around Q (sky and fog). The purple square is Q's postcard, magenta-tinted by `debug=true`. The
+  dark mob in front of it occludes it correctly, so the depth test works.
+* It looked like a swirl because the newest postcard of Q was the frame-17 capture `rect 81x245 at 0,99`. Q was cut by
+  the left screen edge there, so most rays left the captured rectangle and fell back to the swirl. Warm-up ran at
+  about 1 fps, so Q was captured only 3 times, and the one complete capture (frame 13, 94x92) was overwritten. The
+  completeness rule above fixes this.
+* Geometry and IP filters were fine. IP reads the NBT quaternion as `new DQuaternion(rotationB, rotationC, rotationD,
+  rotationA)` = (x, y, z, w), so `rotationC:1` is 180 degrees about Y. The nested Q appeared centred in P at 75% of P's
+  size, exactly as computed for that rotation. With any other reading, Q would lie behind the pass camera or before
+  P's clip plane. Nothing listens to `PortalRenderingPredicateEvent` in the pack. micimmptl's
+  `IrisCompatIdleSkipMixin` cancels only outside passes. The `modelView` handed to `onBeforeHandRendering` in a pass
+  is the pass's own (IP's `MixinGameRenderer.wrapRenderLevel` passes the inner `LevelRenderer.renderLevel` argument).
+* The scene's weakness was shot order: the nested view (shot 0) came before the direct view of Q (shot 2), so the
+  nested shot depended on lucky warm-up captures.
+
+### Scene v2
+
+Everything is relative to the player's feet F (eye E = F + 1.62 up). The rear-view rotation is kept on purpose. With
+pure translation portals the pass camera looks the same way as the player. Q's front could then be seen through P
+only in the same shot direction in which Q is seen directly. Also, only a camera at (almost) the capture position
+re-uses the captured rays. A rear-view P whose pass camera is exactly E gives an exact reprojection test: the nested
+Q must look like Q in the direct shot.
+
+* Mobs: the harness's mob ring (radius 6) is teleported to y = -1000. They die from void damage without dropping
+  loot nearby.
+* Q: centre F + (0, 1.5, 6) (south), 3x3. axisW (-1, 0, 0), axisH (0, 1, 0), so normal = W x H = (0, 0, -1):
+  it faces the player. It is a translation portal to F + (0, 26.5, 126): 25 up, 120 further south.
+* P: centre F + (0, 1.5, -4) (north), 3x3. axisW (1, 0, 0), axisH (0, 1, 0), so normal (0, 0, 1): it faces the
+  player. Rotation 180 degrees about Y (`rotationA:0f` = w, `rotationC:1f` = y).
+  * Destination F + (0, 1.5, 4), set by `~ ~ ~8` from P.
+  * Pass camera: P.dest + R(E - P.origin) = (0, 1.5, 4) + R(0, 0.12, 4) = (0, 1.62, 0) = E. It looks south.
+  * Clip plane: z = F + 4, with content beyond it. Q (z = F + 6) is 2 blocks beyond it.
+  * Q is not P's reverse: `cannotRenderInMe` is false (Q's origin is 2 blocks off the destination plane).
+  * Q's corners pass through P's destination window at local (+-1.0, -0.96..1.04), inside +-1.5. So Q is entirely
+    visible in P, at 2/3 of P's size.
+* Shot 0 (yaw 0, south): Q directly, head-on at 6 blocks, corners 19-20 degrees off-centre, so the capture is complete
+  (coverage 1). Many frames are spent here, so Q is captured fresh.
+* Shot 1 (west), shot 3 (east): neither portal is on screen. Shot 4 (pitch 60): Q is about 45 degrees above the top
+  edge.
+* Shot 2 (yaw 180, north): P at 4 blocks, corners 27-29 degrees off-centre. Inside P is the view south, with Q nested
+  in it as a postcard. The capture camera and the display camera are both E, so the reprojection offset is 0.
+  Expected result: Q in shot 2 looks like Q in shot 0, magenta-tinted with `debug=true`, and slightly older.
+* The warm-up spin (pitch 10) also passes Q (south) and P (north) on every turn.
 
 ```
--Dflyaway.harness.setup=summon immersive_portals:portal ~ ~1.5 ~6 {width:3d,height:3d,axisWX:-1d,axisWY:0d,axisWZ:0d,axisHX:0d,axisHY:1d,axisHZ:0d,dimensionTo:'minecraft:overworld',destinationX:0d,destinationY:100d,destinationZ:0d,rotationA:0f,rotationB:0f,rotationC:1f,rotationD:0f,Tags:['fa_p']};summon immersive_portals:portal ~ ~1.5 ~-8 {width:3d,height:3d,axisWX:1d,axisWY:0d,axisWZ:0d,axisHX:0d,axisHY:1d,axisHZ:0d,dimensionTo:'minecraft:overworld',destinationX:0d,destinationY:100d,destinationZ:0d,Tags:['fa_q']};execute as @e[tag=fa_p,limit=1] at @s run portal set_portal_destination minecraft:overworld ~ ~ ~-12;execute as @e[tag=fa_q,limit=1] at @s run portal set_portal_destination minecraft:overworld ~ ~25 ~-120
+-Dflyaway.harness.setup=tp @e[type=!minecraft:player,distance=..12] ~ -1000 ~;summon immersive_portals:portal ~ ~1.5 ~6 {width:3d,height:3d,axisWX:-1d,axisWY:0d,axisWZ:0d,axisHX:0d,axisHY:1d,axisHZ:0d,dimensionTo:'minecraft:overworld',destinationX:0d,destinationY:100d,destinationZ:0d,Tags:['fa_q']};summon immersive_portals:portal ~ ~1.5 ~-4 {width:3d,height:3d,axisWX:1d,axisWY:0d,axisWZ:0d,axisHX:0d,axisHY:1d,axisHZ:0d,dimensionTo:'minecraft:overworld',destinationX:0d,destinationY:100d,destinationZ:0d,rotationA:0f,rotationB:0f,rotationC:1f,rotationD:0f,Tags:['fa_p']};execute as @e[tag=fa_p,limit=1] at @s run portal set_portal_destination minecraft:overworld ~ ~ ~8;execute as @e[tag=fa_q,limit=1] at @s run portal set_portal_destination minecraft:overworld ~ ~25 ~120
 ```
 
-Expected results:
-
-* Shot 0 (yaw 0): inside P you see the area behind the player, with Q in it. With postcards on, Q shows a
-  high view to the north. With `imm_ptl.postcards.debug=true` it is tinted magenta. With postcards off, Q's area
-  shows just the ground behind it.
-* Shot 2 (yaw 180): Q is seen directly, as a live view. Compare it with Q in shot 0: same content, but older by up
-  to one spin.
-* The mob ring of the harness puts a wither skeleton at (0, -6), between the player and Q. It sits on P's
-  destination plane, so half of it is clipped. The visible half must occlude Q's postcard in shot 0, which tests the
-  depth test.
-* The NBT strings use single quotes, so the whole `-D...` argument can be wrapped in double quotes (as in
-  `tools/abrun.sh`).
+With `imm_ptl.postcards.debug=true`, each `[postcards] pass end:` report lists the pass camera, the IP list size, and
+every portal within 96 blocks with its verdict. In shot 2 the expected report is `outer <P> ... pass camera (= the
+player's eye)`, with Q `ACCEPTED: drawn nested` and P `REJECTED (IP): outside the pass frustum` (P is behind the pass
+camera). The capture lines also print `coverage`. Q's captures in shot 0 should read `coverage 1.00`.

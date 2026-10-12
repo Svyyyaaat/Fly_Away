@@ -47,6 +47,8 @@ public final class PostcardCache {
         int usedW, usedH;
         double destX, destY, destZ;     // portal destination at capture time
         int capturedFrame = Integer.MIN_VALUE / 2;
+        long capturedNanos;
+        float coverage;                 // on-screen fraction of the portal's screen rect at capture (1 = complete)
 
         // display / fade state
         int lastNestedFrame = Integer.MIN_VALUE / 2;
