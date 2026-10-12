@@ -8,11 +8,13 @@ rm -f $I/mods/flyaway_perf*.jar
 [ "$jar" != none ] && cp "$jar" $I/mods/flyaway_perf.jar
 if [ "${PERF_OFF:-0}" = 1 ]; then printf "area.vanilla=false\narea.iris=false\narea.imm_ptl=false\narea.epicfight=false\narea.xaero=false\narea.sodium=false\narea.flywheel=false\narea.voxy=false\narea.sable=false\narea.vss=false\narea.compat=false\n" > $I/config/flyaway_perf.properties; else printf "%b" "${PERF_PROPS:-}" > $I/config/flyaway_perf.properties; fi
 rm -rf $I/crash-reports; if [ "${SHADERS:-1}" = 1 ]; then sed -i "s/^enableShaders=.*/enableShaders=true/" $I/config/iris.properties; else sed -i "s/^enableShaders=.*/enableShaders=false/" $I/config/iris.properties; fi
-pgrep -x Xvfb >/dev/null || (Xvfb :99 -screen 0 ${MCW:-640}x${MCH:-360}x24 >/dev/null 2>&1 &)
+pgrep -x Xvfb >/dev/null || { rm -f /tmp/.X99-lock /tmp/.X11-unix/X99; (Xvfb :99 -screen 0 ${MCW:-640}x${MCH:-360}x24 >/dev/null 2>&1 9>&- </dev/null &); }
+for i in $(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.2; done
+[ -S /tmp/.X11-unix/X99 ] || { echo "Xvfb not running"; exit 4; }
 export GALLIUM_NOOP=${NOOP:-0} MCW=${MCW:-640} MCH=${MCH:-360} DISPLAY=:99 MESA_GL_VERSION_OVERRIDE=4.6 MESA_GLSL_VERSION_OVERRIDE=460
 cd $I
 mkdir -p $S/bench
-timeout 2400 python3 -I $S/tools/launch.py $I -Xmx5500m -XX:MaxDirectMemorySize=1g -Dcustomskinloader.ignorePatchFailure=true -Dflyaway.harness=bench -Dflyaway.harness.label=$label "$@" > $S/bench/$label.log 2>&1
+timeout 2400 python3 -I $S/tools/launch.py $I -Xmx5500m -XX:MaxDirectMemorySize=1g -Dcustomskinloader.ignorePatchFailure=true -Dflyaway.harness=bench -Dflyaway.harness.label=$label "$@" </dev/null 2>&1 | head -c 400000000 > $S/bench/$label.log
 echo "exit $?"
 cp $I/flyaway_bench/result-$label.txt $S/bench/ 2>/dev/null && cat $S/bench/result-$label.txt
 ls -t $I/config/spark/ 2>/dev/null | head -3
