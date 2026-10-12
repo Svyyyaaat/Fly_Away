@@ -171,3 +171,130 @@ entity, so more with many entities / Xaero radar entities on screen).
 * Iron's invisibility ring: equip/unequip it - invisible mobs become visible immediately; name tags/Xaero radar fine.
 * Gliders: equip a glider in chest and in the Curios back slot; glider render + updraft particles unchanged. With an
   Accessories cosmetic chest item equipped the glider layer behaves as before.
+
+## Fracture blocks (Epic Fight ground slams)
+
+Profile `spark/76w5vCPcjb.bin` (render thread, taken during a fight): `FractureBlockRenderer.render` **7.13%** of the
+render thread (all in the main pass - the Iris shadow pass and portal passes do not draw it), of which:
+
+| Inclusive | What |
+|---|---|
+| 7.08% | `BlockRenderDispatcher.renderBreakingTexture` (aeronautics `wrapMethod` = levitite pose nudge, colorwheel `injectBeginEndBlock` = Iris block-id begin/end - both thin wrappers) -> `ModelBlockRenderer.tesselateBlock` -> NeoForge `LightPipelineAwareModelBlockRenderer.tesselateWithAO` (vanilla AO path, experimental pipeline off) |
+| 5.84% | `AmbientOcclusionFace.calculate` |
+| 4.36% | of that `ModelBlockRenderer$Cache.getLightColor` -> `LevelRenderer.getLightColor`: LambDynLights `onGetLightmapCoordinates` 2.0% (incl. its own `getBlockState().isSolidRender`), light engine `getBrightness` x2 1.87%, micimmptl `foreignSkylight` 0.40% |
+| 0.32% / 0.31% | `getBlockState` (Immersive Portals client chunk map) / `Cache.getShadeBrightness` |
+| 0.87% | `putQuadData` -> `BufferBuilder.putBulkData` (Iris extended vertex data) |
+
+### What the renderer really does
+Client only. A slam (`LevelUtil.circleSlamFracture`; the server sends one `SPCreateTerrainFracture` packet, the client
+repeats the shockwave) does `level.setBlock(bp, FractureBlockState, 0)` for each ground block of the disc; the
+fracture state is `RenderShape.INVISIBLE` (the chunk mesh skips it) and has a block entity. Every frame
+`FractureBlockRenderer.render` builds the bounce/rotation pose and calls
+`renderBreakingTexture(originalState, bp.above(), level, pose, buffers.getBuffer(RenderType.cutout()), ModelData.EMPTY)`.
+Despite the name this is **not** the crumbling overlay: `renderBreakingTexture` = `tesselateBlock(level, model, state,
+pos, pose, consumer, checkSides = true, rand, seed, NO_OVERLAY, modelData, renderType = null)` - the original block's
+full model (all quads) into the normal cutout buffer, with smooth lighting and face culling evaluated at
+`bp.above()`. Per block per frame: ~6 AO faces x (up to 9 light + 9 shade + ~15 getBlockState) world reads, almost all
+on positions shared with the neighbouring fracture blocks. Lifetime is `30 + rand(radius*80)` ticks (a Meteor Slam /
+big NightFall slam keeps hundreds of fracture blocks alive for seconds), so the per-frame cost scales with the number
+of blocks - this is the "freeze".
+
+### Patch 8: `epicfight.FractureBlockRendererLightMemoMixin` (client) + `vanilla.epicfight.*` (client)
+* `epicfight.FractureBlockRendererLightMemoMixin`: `@WrapOperation` of the `renderBreakingTexture(...)` call in
+  `FractureBlockRenderer#render(FractureBlockEntity,float,PoseStack,MultiBufferSource,int,int)` - sets
+  `FractureLightMemo.inFracture` around the unchanged call.
+* `vanilla.epicfight.ModelBlockRendererCacheFractureMemoMixin` (`ModelBlockRenderer$Cache`): `@WrapOperation` of the
+  `LevelRenderer.getLightColor(BlockAndTintGetter,BlockState,BlockPos)` call in `getLightColor` and of the
+  `BlockState.getShadeBrightness(BlockGetter,BlockPos)` call in `getShadeBrightness`.
+* `vanilla.epicfight.AmbientOcclusionFaceFractureMemoMixin` (`ModelBlockRenderer$AmbientOcclusionFace`):
+  `@WrapOperation` of all 15 `BlockAndTintGetter.getBlockState` calls in `calculate`.
+* `vanilla.epicfight.LevelRendererFracturePassMixin`: `LevelRenderer#renderLevel` HEAD/RETURN -> memo epoch.
+* `vanilla.epicfight.GameRendererFractureFrameMixin`: `GameRenderer#render(DeltaTracker,boolean)` HEAD -> force reset.
+* Helper: `dev.flyaway.perf.epicfight.FractureLightMemo`.
+* Fix: while (and only while) the fracture renderer's own call runs on the render thread inside a `renderLevel`
+  pass, light / shade / block-state reads are memoised per (getter identity, position[, BlockState argument
+  identity]) for the rest of that pass. Nothing in the client world changes during a pass: packets, ticks
+  (LambDynLights recomputes its spatial lookup at the end of the level tick), block entity ticks and block changes run
+  between frames, and `pollLightUpdates` / `runLightUpdates` run at the top of `renderLevel` before any block entity
+  is drawn (the Iris shadow pass is later too: it is injected before `renderSky`). The epoch changes at every
+  `renderLevel` HEAD and RETURN (a nested Immersive Portals pass runs light updates again -> fresh memo for it and for
+  the rest of the outer pass) and at every frame start; the memo is dropped whenever a different getter is passed.
+  The light key includes the state argument because vanilla passes the *rendered* (original) state for the centre
+  sample and the level's state for the neighbours (emission / emissive rendering depend on it). So every memoised
+  value is exactly what the original call returned earlier in the same pass - the vertex stream (positions, AO
+  brightness, lightmap, colour, Iris extended data) is bit-identical. The other mods' wrappers (aeronautics,
+  colorwheel, Sable getShade, moreculling, LambDynLights, micimmptl) still run; the light wrappers run once per
+  position per pass (micimmptl's `probeBake` there is a debug-log counter only).
+* Expected gain: the light/shade/state reads are 5.0% of the 7.13%; a disc of N fracture blocks touches ~3N distinct
+  positions instead of ~100N reads -> roughly **-4% of the render thread** in that profile, and the frame-time spike
+  of a big slam shrinks by a similar factor (~60-70%). Not touched (still per block per frame): AO maths + quad
+  emission (~1.7%).
+* Risk: low. The memo is inert outside `FractureBlockRenderer` (one static boolean check per AO sample elsewhere),
+  only used on the thread that opened the pass, and capped (32k positions, then restarted).
+* Disable: `mixin.epicfight.FractureBlockRendererLightMemoMixin=false` (whole feature off), or individually
+  `mixin.vanilla.ModelBlockRendererCacheFractureMemoMixin=false`,
+  `mixin.vanilla.AmbientOcclusionFaceFractureMemoMixin=false`, `mixin.vanilla.LevelRendererFracturePassMixin=false`
+  (memo never active), `mixin.vanilla.GameRendererFractureFrameMixin=false` (removes only the safety reset).
+
+### Patch 9: `epicfight.LevelUtilShockwaveEntityQueryMixin` (common; acts on the server thread)
+* Targets: `LevelUtil#circleSlamFracture(LivingEntity,Level,Vec3,double,boolean,boolean,boolean)` HEAD/RETURN and the
+  `Level.getEntities(Entity,AABB)` call in `LevelUtil#spreadShockwave`.
+* Problem: the server casts one shockwave ray per perimeter cell (~8 x radius rays per slam) and every ray runs an
+  entity AABB query only to fill `entityBeingHit`, which `circleSlamFracture` reads only when `hurtEntities` is true.
+  NightFall's `WeaponTrailGroundSplitter` calls `circleSlamFracture(..., hurtEntities = false)` 3 x density x sub-steps
+  times per tick while a trail is active (also its Yamato / scythe / Damocles / Heavy Rain fractures, Avalon):
+  thousands of entity-section scans per tick on the integrated server thread for a discarded result.
+* Fix: only on the server thread inside a `hurtEntities = false` slam, the query returns `List.of()`. The query has no
+  side effects; the per-cell loop over an empty list does nothing; block destruction above the disc, packets and the
+  client-side fracture are unchanged. `hurtEntities = true` slams (Epic Fight's own, NightFall/Avalon damage slams)
+  are untouched.
+* Expected gain: server thread only (not in the render-thread profile); proportional to the number of no-damage slams.
+* Disable: `mixin.epicfight.LevelUtilShockwaveEntityQueryMixin=false`
+
+### Creation freeze - what else was checked (no change needed / not changeable)
+* Client creation itself is cheap: `handleFracture` -> `circleSlamFracture` is 0.03% of the render thread in the
+  profile (setBlockState, sky light sources, lithium BE creation). One packet per slam, not per block.
+* Section rebuilds: each `setBlock(..., flags 0)` marks the 27 surrounding sections dirty via
+  `setBlocksDirty -> setSectionDirty(..., important = false)`; Sodium 0.8 schedules a plain **async** rebuild
+  (deduplicated per section; IMPORTANT/blocking rebuilds need `playerChanged = true`). Sodium uploads in the profile:
+  0.23%. The same happens when each block restores (random lifetimes -> spread over many ticks). Needed for the
+  visuals (the chunk mesh must hide/show the ground block).
+* Light: fracture states have different light properties (empty occlusion shape), so each conversion/restore queues a
+  `checkBlock`; the client light engine processes them in `runLightUpdates` (0.03% total). The light at `bp` is read
+  by the fracture's own AO (down face), so it cannot be skipped.
+* Voxy re-ingests only on changes to air / Domum states - not triggered. VSS dirty-column marking is server-only.
+* Particles: `GROUND_SLAM` spawns `radius*10` terrain + `radius*10` cosy-smoke particles, `createParticle` 1-4 per
+  fracture block, and each block spawns one `GROUND_FRACTURE` terrain particle per tick in its last 10 ticks -
+  visible, not changed.
+* So the stall is the per-frame rendering of many fracture blocks (patch 8), plus server work for NightFall trails
+  (patch 9). If a hitch remains at the moment of creation, the lead should capture spark with all threads
+  (`/spark profiler start --thread * --interval 1`) around a large Meteor Slam to see the integrated server and
+  Sodium worker threads.
+* Rejected: **cache the tessellated mesh per fracture block across frames and replay it with the new pose**. The
+  output depends on light (can change any frame: `pollLightUpdates` runs a slice of queued light tasks per frame,
+  LambDynLights changes every tick), neighbour states (fracture neighbours restore at random ticks -> face culling and
+  AO change), moreculling's culling, the model's ModelData/getQuads and block tint. Validating all that exactly every
+  frame costs about what the memo already leaves; an "invalidate after N ticks" cache would show stale light/culling
+  for up to N ticks (visual change). Also rejected: skipping the unused `LevelRenderer.getLightColor(level, pos)` that
+  `BlockEntityRenderDispatcher.setupAndRender` computes for the ignored packedLight argument - 1 lookup per block
+  (~0.03%), and many mods hook that dispatcher.
+
+### What the lead must test (fracture blocks)
+* How to trigger (`epicfight-client.toml` `ground_slams = true`, already on):
+  * Epic Fight **greatsword dash attack** (battle mode, greatsword, sprint + attack): small client-only slam
+    (radius 1.1).
+  * **Meteor Slam**: `/epicfight skill add @s mover epicfight:meteor_slam`, jump from 10-30 blocks, use the skill
+    while falling: radius `ln(fallDistance * impact)` -> large disc (best stress test).
+  * **Demolition Leap**: `/epicfight skill add @s mover epicfight:demolition_leap`, hold, release: radius
+    `chargeTicks * 0.05`.
+  * NightFall weapons (Yamato / scythe skills, Damocles / Heavy Rain swords) for the `hurtEntities = false` server
+    path (patch 9).
+* Mixins apply (log: no `InvalidInjectionException`; applied count +6).
+* Visual A/B (same spot, screenshots mid-bounce) with `mixin.epicfight.FractureBlockRendererLightMemoMixin=false` vs
+  default: fracture blocks of grass, stone, logs, leaves, glass, a light-emitting block (glowstone: flat-light path,
+  unaffected), in daylight, at night next to a torch, and while holding a torch (LambDynLights) - lighting/AO
+  identical. Also with Solas on, and looking at fracture blocks through an Immersive Portals portal.
+* Perf: spark the render thread during repeated Meteor Slams: `FractureBlockRenderer.render` should drop from ~7% to
+  ~2-3%, `Cache.getLightColor` under it to a fraction of a percent.
+* Patch 9: NightFall trail skill near mobs - blocks above the disc still break, mobs still take no damage from the
+  trail; damage slams still hit.

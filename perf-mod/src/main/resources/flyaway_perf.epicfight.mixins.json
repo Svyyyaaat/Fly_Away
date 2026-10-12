@@ -7,10 +7,13 @@
   "injectors": {
     "defaultRequire": 1
   },
-  "mixins": [],
+  "mixins": [
+    "LevelUtilShockwaveEntityQueryMixin"
+  ],
   "client": [
     "ComputeShaderSetupVaoStateMixin",
     "DynamicSSBOUploadDedupMixin",
-    "LayerClassLookupMixin"
+    "LayerClassLookupMixin",
+    "FractureBlockRendererLightMemoMixin"
   ]
 }
