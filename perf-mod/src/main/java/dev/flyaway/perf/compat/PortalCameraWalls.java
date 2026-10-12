@@ -36,6 +36,12 @@ public final class PortalCameraWalls {
 
     private static volatile Snapshot cache;
 
+    static {
+        // Don't keep a ClientLevel (and its portals) alive after leaving the world (review finding).
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                (net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut e) -> cache = null);
+    }
+
     private static List<Portal> portalsNear(Level level, Vec3 eye, double range) {
         long now = System.nanoTime();
         Snapshot s = cache;
@@ -68,7 +74,8 @@ public final class PortalCameraWalls {
      */
     public static BlockHitResult clip(Level level, Vec3 eye, Vec3 from, Vec3 to, BlockHitResult blockHit) {
         if (level == null || eye == null || from.distanceToSqr(to) < 1.0E-12) return blockHit;
-        List<Portal> portals = portalsNear(level, eye, Math.max(eye.distanceTo(to), from.distanceTo(to)) + 1.0);
+        // Round the range up so the 8 corner rays of one camera setup share one snapshot.
+        List<Portal> portals = portalsNear(level, eye, Math.ceil((Math.max(eye.distanceTo(to), from.distanceTo(to)) + 1.0) / 8.0) * 8.0);
         if (portals.isEmpty()) return blockHit;
 
         double best = blockHit != null && blockHit.getType() != HitResult.Type.MISS
@@ -76,7 +83,7 @@ public final class PortalCameraWalls {
         RayTraceResult bestHit = null;
         for (int i = 0, n = portals.size(); i < n; i++) {
             Portal portal = portals.get(i);
-            if (portal == null || portal.isRemoved() || !portal.isInFrontOfPortal(eye)) continue;
+            if (portal == null || portal.isRemoved() || !portal.isVisible() || !portal.isInFrontOfPortal(eye)) continue;
             RayTraceResult hit = portal.generalRayTrace(from, to, LENIENCY);
             if (hit == null) continue;
             double d = hit.hitPos().distanceToSqr(from);

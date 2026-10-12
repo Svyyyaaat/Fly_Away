@@ -57,12 +57,17 @@ public abstract class TaczRecoilShoulderSurfingMixin {
         if (ss == null || !ss.isShoulderSurfing()) return; // tp_shooting only fills the deltas while shoulder surfing
         ShoulderSurfingCamera camera = ss.getCamera();
         if (camera == null) return;
-        if ((Object) camera instanceof ShoulderSurfingCameraAccessor acc) {
+        if (!dev.flyaway.perf.PerfConfig.isEnabled("compat", "ShoulderSurfingCameraAccessor")) {
+            flyaway$broken = true; // accessor disabled -> leave tp_shooting's behaviour alone (review finding)
+            return;
+        }
+        try {
+            ShoulderSurfingCameraAccessor acc = (ShoulderSurfingCameraAccessor) (Object) camera;
             Vec2f rot = acc.flyaway$getRotation();
             acc.flyaway$setRotation(rot.add((float) dx, (float) dy).clampX(-90.0F, 90.0F));
-        } else { // accessor disabled: public API (also clears an active free-look offset)
-            camera.setXRot(Math.max(-90.0F, Math.min(90.0F, camera.getXRot() + (float) dx)));
-            camera.setYRot(camera.getYRot() + (float) dy);
+        } catch (LinkageError | ClassCastException e) {
+            flyaway$broken = true;
+            return;
         }
         plugin.deltaXRot = 0.0;
         plugin.deltaYRot = 0.0;

@@ -32,6 +32,8 @@ public final class HitchLogger {
     private static final long MAX_FILE = 8L << 20;
     private static volatile long lastBoundary = System.nanoTime();
     private static volatile Thread renderThread;
+    private static final boolean IN_MENUS = PerfConfig.getBool("debug.hitchInMenus", false);
+    private static long reportedStart = -1;
 
     private HitchLogger() {}
 
@@ -55,7 +57,8 @@ public final class HitchLogger {
                 Thread.sleep(20);
                 Thread rt = renderThread;
                 long start = lastBoundary;
-                if (rt == null || System.nanoTime() - start < thresholdNs) continue;
+                if (rt == null || start == reportedStart || System.nanoTime() - start < thresholdNs) continue;
+                if (!IN_MENUS && Minecraft.getInstance().level == null) continue; // don't sample loading screens
                 // Hitch in progress: sample until the render thread passes a frame boundary again.
                 List<StackTraceElement[]> samples = new ArrayList<>();
                 while (lastBoundary == start && samples.size() < 4000) {
@@ -63,6 +66,7 @@ public final class HitchLogger {
                     Thread.sleep(5);
                 }
                 long durMs = ((lastBoundary == start ? System.nanoTime() : lastBoundary) - start) / 1_000_000L;
+                reportedStart = start; // one report per freeze, even past the sample cap
                 report(durMs, samples);
             } catch (InterruptedException e) {
                 return;
@@ -81,8 +85,9 @@ public final class HitchLogger {
     private static void report(long durMs, List<StackTraceElement[]> samples) throws IOException {
         if (samples.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null && !PerfConfig.getBool("debug.hitchInMenus", false)) return;
-        String where = mc.level == null ? "no world (loading/menu)" : mc.level.dimension().location().toString();
+        net.minecraft.client.multiplayer.ClientLevel lvl = mc.level; // read once: may change on another thread
+        if (lvl == null && !IN_MENUS) return;
+        String where = lvl == null ? "no world (loading/menu)" : lvl.dimension().location().toString();
         Map<String, Integer> stacks = new HashMap<>();
         Map<String, Integer> methods = new HashMap<>();
         for (StackTraceElement[] st : samples) {

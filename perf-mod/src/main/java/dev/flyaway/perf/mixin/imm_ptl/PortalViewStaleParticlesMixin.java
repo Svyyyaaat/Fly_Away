@@ -27,7 +27,9 @@ public abstract class PortalViewStaleParticlesMixin {
     private static void flyaway$hideFrozen(Particle particle, CallbackInfoReturnable<Boolean> cir) {
         if (!ENABLED || !cir.getReturnValueZ() || !PortalRendering.isRendering()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && ((IEParticle) particle).portal_getWorld() != mc.player.level()) {
+        net.minecraft.client.multiplayer.ClientLevel w = ((IEParticle) particle).portal_getWorld();
+        // Only hide particles of levels whose particles are not being ticked (review: IP/micimmptl remote ticking may tick them).
+        if (mc.player != null && w != mc.player.level() && !dev.flyaway.perf.imm_ptl.ParticleTickStamp.ticking(w)) {
             cir.setReturnValue(false);
         }
     }

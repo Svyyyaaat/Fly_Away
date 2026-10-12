@@ -15,6 +15,7 @@
     "GlQueryObjectIdAccessor",
     "ImmPtlClientChunkMapFastGetMixin",
     "IrisCompatPostcardMixin",
+    "ParticleEngineTickStampMixin",
     "PortalGeometryInvalidateMixin",
     "PortalRenderInfoNoSyncWhenHiddenMixin",
     "PortalViewStaleParticlesMixin",
