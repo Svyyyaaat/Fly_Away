@@ -18,6 +18,44 @@ A portal Q that is seen through another portal P is therefore never processed. I
 it looks like an inactive portal. A real second layer would need a second full Iris pipeline pass (shadow,
 gbuffers, composites) for every nested portal. That is far too expensive.
 
+## Rework after the first real play test
+
+What the user saw: in normal play the nested portal was mostly the purple swirl, with a sheared, partial fragment of
+the world in one corner. It only looked right after leaving the dimension while looking straight at the portal.
+
+Two causes:
+
+1. **No postcard in the common case.** A postcard was captured only in a pass through the portal itself, so only after
+   the player had looked at that exact portal. A portal seen only nested, or the portal you walked out of and turned
+   your back on, never got one. That left the swirl.
+2. **Tearing parallax.** Reprojection marched against the full-resolution captured depth. From a viewpoint that differs
+   from the capture's, every depth edge (a tree in front of the sky, a block edge) opens a gap the capture never saw.
+   The ray then jumps from the foreground to the background, which reads as shearing. Rays that left the captured
+   rectangle faded into the swirl within 10%, which gave the hard seams.
+
+Fixes (sections 1b, 2 and 3 below have the details):
+
+* **Captures from the player's own view (1b).** A portal Q shows "the destination world, seen from Q's destination
+  looking along Q's content direction". When the player stands near Q's destination and looks that way, the main view
+  is almost exactly that. This happens right after walking out of Q, and when walking away from the portal you came
+  through. So the main view is captured as Q's postcard. Portals in any loaded world whose destination is within 48
+  blocks are candidates. A direct capture still wins: score 1 against at most 0.9.
+* **Smooth depth proxy (2).** The capture stores disparity (1/distance) with a full mip chain. The march uses a coarse
+  level, about 96 px across. A smooth surface cannot tear: near objects get a soft, slightly wrong parallax instead of
+  gaps.
+* **Blurred continuation instead of the swirl (2).** A ray outside the captured area samples the nearest captured edge
+  from an increasingly blurred mip level. It only fades towards the membrane far outside.
+* **Membrane instead of the swirl (3).** A portal with no capture at all shows a calm gradient in the destination's fog
+  colour, with slow low-contrast motion. It is only 15% portal purple, down from 35%.
+* Offscreen GPU test (same harness as below, with 7 camera positions including two 35-40 degree oblique ones, plus a
+  "main-view" capture taken 0.6 blocks in front of Q's destination): pixels within 8% of ground truth.
+
+| | old (direct capture) | new (direct capture) | new (main-view capture) |
+|---|---|---|---|
+| identity camera | 88.8% | 98.0% | 81% |
+| moved 0.6 blocks, turned 8 degrees | about 89% | 93.9% | 84.5% |
+| oblique, 40 degrees | not measured (tears) | 59% (soft smear, no gaps) | 71% |
+
 ## Design
 
 ### 1. Capture (end of every layer-1 portal pass)
@@ -63,13 +101,47 @@ Key and lifetime:
 * Postcards are keyed by portal UUID. The destination dimension is checked on use: a postcard captured for another
   destination is ignored, and so is one whose portal destination has moved by more than 0.5 blocks.
 * Eviction:
-  * LRU once the memory cap is reached (`imm_ptl.postcards.maxMemoryMB`, default 64; 4.7 MB per postcard at 768).
+  * LRU once the memory cap is reached (`imm_ptl.postcards.maxMemoryMB`, default 64; about 6.3 MB per postcard at 768).
   * The postcard has not been used for 120 s.
   * The portal entity was removed and has not been seen again for 10 s.
   * The client level the portal lives in unloads (`LevelEvent.Unload`).
   * Resource reload, or logout.
   * Iris shader reload. This is detected through `PipelineManager` identity and
     `getVersionCounterForSodiumShaderReload`.
+
+### 1b. Main-view captures (the player's own view)
+
+Hooks:
+
+* `GameRendererPostcardMainViewMixin`: wraps `LevelRenderer.renderLevel` in `GameRenderer.renderLevel`. It records the
+  main view's `modelView` and projection, then calls `onMainViewFinished` right after the world render.
+* `IrisCompatPostcardMixin`: in `onBeforeHandRendering`, before `IPIrisHelper.newCopyDepthStencil`, which is the
+  start of the main-pass portal rendering.
+
+IP wraps the same call and runs its portal passes after it. The passes overwrite the main target's depth, so the
+capture must happen first. Whichever of the two hooks comes first in a frame without a portal pass does the work. A
+frame stamp (`lastPassFrame`) skips the late hook if passes already ran. micimmptl's idle skip cancels the second hook
+when no portal is within 128 blocks; then the first hook runs, and the depth is still clean because no pass ran.
+
+Steps:
+
+* Candidates: every 20 frames, the portals in every loaded client world whose destination is this world and within
+  48 blocks of the camera. Global and fuse-view portals are skipped.
+* Score (0 means skip). The camera must be at most 0.3 blocks behind Q's destination plane, on the content side. The
+  look direction must be within about 63 degrees of Q's content direction (dot >= 0.45). The score is
+  `0.9 * smoothstep(facing) / (1 + 0.05 * (depth beyond the plane - 1) + 0.25 * (lateral offset beyond Q's half size))`,
+  and anything below 0.15 counts as 0.
+* At most one capture per frame (the best due candidate). Each portal is captured at most every
+  `2 * refreshFrames` frames, and never during a fade. The capture uses the whole screen.
+* Replacement: a capture replaces the stored one only if its score is at least the stored score minus 0.05, or the
+  stored one is more than 20 s old. Direct captures (pass through Q, score = on-screen coverage) use the same rule.
+* Masking: anything closer than 0.6 blocks (hand and held item) is stored as invalid. With a detached camera (F5,
+  Shoulder Surfing), the player's body is also stored as invalid: a capsule of radius 0.85 from feet to head,
+  reconstructed with the inverse view-projection. Invalid texels are filled from coarser mip levels on display
+  (push-pull).
+* A main-view capture never evicts another postcard. It only runs if the memory cap has room, and it does not count as
+  "use" for the LRU.
+* It only runs when IP's active renderer is `IrisCompatibilityPortalRenderer`, so not without shaders.
 
 ### 2. Display (nested portals, same hook, right after the capture)
 
@@ -96,7 +168,19 @@ Key and lifetime:
   the pass's final composite, with a depth test against the pass depth, needs no Iris interaction. It also works the
   same with every pack.
 
-Reprojection (`postcard_display.fsh`):
+Reprojection (`postcard_display.fsh`). The description below is the original design. Since the rework, these
+details differ:
+
+* The march (20 steps from 5 cm to about 380 blocks, then 6 bisection steps) compares disparities against mip level
+  `log2(resolution / 96)` of the disparity texture. That is a smooth proxy, so there is no disocclusion branch.
+* Steps behind the capture camera, and steps outside its frustum before the ray has entered it, are skipped. A
+  main-view capture is taken in front of Q's destination plane, so the start of every ray is behind it.
+* Leaving the captured area samples the clamped edge at mip level `1.5 + 6 * distance outside`. Confidence falls to
+  20% at 0.6 rectangle widths outside.
+* The colour is stored premultiplied, with alpha marking valid texels. Invalid texels are filled from mip levels +3
+  and +6.
+
+Original description:
 
 * Take the fragment's camera-relative position X on Q.
 * Carry the ray (camera to X) through Q's portal transform into the capture's space, using:
@@ -120,10 +204,13 @@ Reprojection (`postcard_display.fsh`):
 | moved 0.6 blocks and turned 8 degrees | about 89% |
 | moved close to Q and turned 12 degrees | 62% (the uncovered part becomes swirl, as designed) |
 
-### 3. Fallback swirl
+### 3. Fallback membrane (was: swirl)
 
-* There is no postcard until the portal has been rendered directly at least once, which needs the player to have
-  looked at it.
+* There is no postcard until the portal has been seen directly at least once, or the player has looked out from
+  near its destination (1b).
+* Since the rework, the fallback is a calm vertical gradient of the destination tint with slow low-contrast motion
+  and a faint purple shimmer. The tint is the destination fog colour mixed 15% (was 35%) toward portal purple. The
+  original swirl is described below.
 * Until then, a cheap animated swirl is drawn. It uses polar sine bands and a time uniform.
 * It is tinted with the destination's fog colour, mixed 35% toward portal purple:
   * the biome fog colour at the destination, if that client world is loaded and has the chunk;
@@ -164,17 +251,22 @@ Reprojection (`postcard_display.fsh`):
 * GPU: the capture is one draw of at most `resolution^2` pixels (768^2 by default) with 4+1 texture fetches per
   pixel. The display is up to about 60 texture fetches per covered pixel of a nested portal, which is usually a
   small part of the screen.
-* GPU memory: 8 bytes per pixel, 4.7 MB per postcard at 768. Capped by `maxMemoryMB`.
+* GPU memory: 8 bytes per pixel plus mip chains (RGBA8 + RG16F), about 6.3 MB per postcard at 768. Capped by
+  `maxMemoryMB`.
+* Main-view captures: one full-screen downsample draw plus two `glGenerateMipmap` calls, at most once per frame and
+  per portal every `2 * refreshFrames` frames, only while a candidate scores. The candidate scan runs every 20 frames
+  and iterates the entities of the loaded client worlds.
 
 ## Limits
 
-* A postcard exists only after the portal has been seen directly. A portal that has only ever been seen through
-  another portal shows the swirl. Its postcard cannot be captured from inside the outer pass, because it is never
-  rendered.
+* A postcard exists only after the portal has been seen directly, or after the player has looked out from near its
+  destination (1b). A portal that has only ever been seen through another portal shows the membrane.
+* The smooth depth proxy trades exact parallax for stability. Thin foreground objects (a pillar a few blocks from
+  the capture camera) smear slightly and sit a little too far away when seen from a different angle.
 * Postcards are snapshots. Animated content (mobs, water, particles) behind the nested portal is frozen until the
   player looks at that portal directly again.
 * Reprojection only knows what the capture camera saw. Looking into Q from a very different angle reveals regions
-  that were never captured: they become swirl, and disocclusions get a blurred fill.
+  that were never captured: they get a blurred continuation of the nearest captured edge.
 * The postcard has the shader pack's final look of the moment it was captured: lighting, time of day and
   post-processing. The outer pass's fog and post effects are not re-applied to it.
 * One recursion level: postcards are captured before nested postcards are drawn, so a postcard never contains
@@ -208,10 +300,11 @@ Reprojection (`postcard_display.fsh`):
 | `imm_ptl.postcards` | true | master switch |
 | `imm_ptl.postcards.resolution` | 768 | postcard long side in pixels (128..2048) |
 | `imm_ptl.postcards.refreshFrames` | 4 | re-capture a directly visible portal at most every N frames |
-| `imm_ptl.postcards.maxMemoryMB` | 64 | GPU memory cap, LRU |
+| `imm_ptl.postcards.maxMemoryMB` | 64 | GPU memory cap, LRU (about 10 postcards at 768) |
 | `imm_ptl.postcards.fadeMs` | 350 | swirl->postcard and postcard->live fade time (0 = off) |
 | `imm_ptl.postcards.debug` | false | tint postcards magenta (45%); log captures, draws, a 5 s summary and (every 3 s, max 80) a per-pass report of every portal within 96 blocks of the pass camera with IP's/our accept or reject reason |
 | `mixin.imm_ptl.IrisCompatPostcardMixin` | true | remove the hooks entirely; `area.imm_ptl=false` also works |
+| `mixin.imm_ptl.GameRendererPostcardMainViewMixin` | true | main-view captures, late hook only (the early hook is in `IrisCompatPostcardMixin`) |
 
 ## Test scene (lead)
 

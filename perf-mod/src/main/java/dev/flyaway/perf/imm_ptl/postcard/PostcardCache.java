@@ -48,9 +48,11 @@ public final class PostcardCache {
         double destX, destY, destZ;     // portal destination at capture time
         int capturedFrame = Integer.MIN_VALUE / 2;
         long capturedNanos;
-        float coverage;                 // on-screen fraction of the portal's screen rect at capture (1 = complete)
+        float score;                    // capture quality: 1 = complete direct view; main-view captures score lower
+        boolean direct;                 // captured in a pass through this portal (vs. from the player's own view)
 
         // display / fade state
+        int lastMainTryFrame = Integer.MIN_VALUE / 2;
         int lastNestedFrame = Integer.MIN_VALUE / 2;
         int lastLiveFrame = Integer.MIN_VALUE / 2;
         long fadeStartNanos;            // postcard -> live fade, 0 = none
@@ -101,13 +103,20 @@ public final class PostcardCache {
 
     static long bytesPerEntry() {
         long r = ImmPtlTunables.POSTCARD_RESOLUTION;
-        return r * r * 8L; // RGBA8 + R32F
+        return r * r * 8L * 4 / 3; // RGBA8 + RG16F, with mip chains
     }
 
     /** Max number of entries with GL storage, from the memory cap. */
     static int maxGlEntries() {
         long cap = ImmPtlTunables.POSTCARD_MAX_MEMORY_MB * 1024L * 1024L;
         return (int) Math.max(1, cap / bytesPerEntry());
+    }
+
+    /** True if one more entry can get GL storage without evicting another. */
+    static boolean hasFreeGlSlot() {
+        int withGl = 0;
+        for (Entry e : ENTRIES.values()) if (e.hasGl()) withGl++;
+        return withGl < maxGlEntries();
     }
 
     /** Frees the least recently used entry with GL storage, other than {@code keep}, if the cap is reached. */

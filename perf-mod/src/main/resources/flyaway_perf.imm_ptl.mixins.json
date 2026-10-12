@@ -12,6 +12,7 @@
     "GcMonitorBeanListCacheMixin"
   ],
   "client": [
+    "GameRendererPostcardMainViewMixin",
     "GlQueryObjectIdAccessor",
     "ImmPtlClientChunkMapFastGetMixin",
     "IrisCompatPostcardMixin",

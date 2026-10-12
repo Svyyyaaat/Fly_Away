@@ -23,6 +23,9 @@ import qouteall.imm_ptl.core.render.renderer.PortalRenderer;
  *       recurse into layer 2 without Iris; the pass image incl. Iris composites/final is in the main target here):
  *       capture the outer portal's postcard and draw postcards of nested portals into the main target. IP then copies
  *       the outer portal's area of the main target into its deferred buffer, so the outer clipping is automatic.</li>
+ *   <li>{@code onBeforeHandRendering}, main pass, before the portal passes: capture the player's own view as the
+ *       postcard of portals whose destination is right in front of the camera (see
+ *       {@link dev.flyaway.perf.mixin.imm_ptl.GameRendererPostcardMainViewMixin}).</li>
  *   <li>{@code doRenderPortal} after {@code drawPortalAreaWithFramebuffer} (main pass, portal drawn live): fade the
  *       postcard out over the live view when the portal was a postcard a moment ago.</li>
  * </ul>
@@ -47,6 +50,18 @@ public abstract class IrisCompatPostcardMixin extends PortalRenderer implements 
         if (!this.isDebugMode && PortalRendering.isRendering()) {
             PostcardRenderer.onPortalPassEnd(this, modelView);
         }
+    }
+
+    /** Main pass, before the portal passes overwrite the main target's depth: capture the player's own view. */
+    @Inject(
+            method = "onBeforeHandRendering(Lorg/joml/Matrix4f;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lqouteall/imm_ptl/core/compat/iris_compatibility/IPIrisHelper;newCopyDepthStencil(Lcom/mojang/blaze3d/pipeline/RenderTarget;Lcom/mojang/blaze3d/pipeline/RenderTarget;)V"
+            )
+    )
+    private void flyaway$postcardsMainView(Matrix4f modelView, CallbackInfo ci) {
+        if (!this.isDebugMode) PostcardRenderer.onMainViewFinished();
     }
 
     @Inject(

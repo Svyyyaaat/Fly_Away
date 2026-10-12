@@ -24,13 +24,13 @@ final class PostcardGl {
 
     static int captureProgram, displayProgram;
     static int emptyVao, meshVao, meshVbo;
-    static int linearSampler, nearestSampler;
+    static int linearSampler, nearestSampler, mipSampler;
 
     // capture uniforms
-    static int cSrcColor, cSrcDepth, cSrcRect, cSrcSize, cDstSize;
+    static int cSrcColor, cSrcDepth, cSrcRect, cSrcSize, cDstSize, cProjAB, cInvVP, cBodyA, cBodyB, cMinDist;
     // display uniforms
     static int dViewProj, dColor, dDepth, dMode, dQLin, dQOff, dCapVP, dCapRect, dTexScale, dTexelHalf, dCapAB, dClip,
-            dOriginRel, dAxisW, dAxisH, dHalfSize, dTint, dTime, dAlpha, dMix, dDepthBias, dDebug;
+            dOriginRel, dAxisW, dAxisH, dHalfSize, dTint, dTime, dAlpha, dMix, dDepthBias, dDebug, dDispLod;
 
     /** Triangle vertices (x,y,z camera relative), grown on demand, never freed (a few KB). */
     static FloatBuffer mesh = MemoryUtil.memAllocFloat(3 * 3 * 64);
@@ -49,6 +49,11 @@ final class PostcardGl {
             cSrcRect = glGetUniformLocation(captureProgram, "uSrcRect");
             cSrcSize = glGetUniformLocation(captureProgram, "uSrcSize");
             cDstSize = glGetUniformLocation(captureProgram, "uDstSize");
+            cProjAB = glGetUniformLocation(captureProgram, "uProjAB");
+            cInvVP = glGetUniformLocation(captureProgram, "uInvVP");
+            cBodyA = glGetUniformLocation(captureProgram, "uBodyA");
+            cBodyB = glGetUniformLocation(captureProgram, "uBodyB");
+            cMinDist = glGetUniformLocation(captureProgram, "uMinDist");
             int p = displayProgram;
             dViewProj = glGetUniformLocation(p, "uViewProj");
             dColor = glGetUniformLocation(p, "uColor");
@@ -72,6 +77,7 @@ final class PostcardGl {
             dMix = glGetUniformLocation(p, "uMix");
             dDepthBias = glGetUniformLocation(p, "uDepthBias");
             dDebug = glGetUniformLocation(p, "uDebug");
+            dDispLod = glGetUniformLocation(p, "uDispLod");
 
             emptyVao = glGenVertexArrays();
             meshVao = glGenVertexArrays();
@@ -87,6 +93,8 @@ final class PostcardGl {
 
             linearSampler = sampler(GL_LINEAR);
             nearestSampler = sampler(GL_NEAREST);
+            mipSampler = sampler(GL_LINEAR);
+            glSamplerParameteri(mipSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             FlyAwayPerf.LOGGER.info("[postcards] shaders compiled (GL {})", glGetString(GL_VERSION));
         } catch (Throwable t) {
             failed = true;
@@ -154,7 +162,11 @@ final class PostcardGl {
         return p;
     }
 
-    /** Allocates the textures + FBO of an entry (res x res, RGBA8 colour + R32F depth). Caller saved GL state. */
+    /**
+     * Allocates the textures + FBO of an entry: res x res, RGBA8 premultiplied colour (alpha = valid) and RG16F
+     * disparity (r = 1/distance * valid, g = valid), both with a full mip chain (filled by {@link #generateMips}).
+     * Caller saved GL state.
+     */
     static void allocate(PostcardCache.Entry e, int res) {
         e.releaseGl();
         e.res = res;
@@ -162,7 +174,7 @@ final class PostcardGl {
         int pbo = glGetInteger(GL_PIXEL_UNPACK_BUFFER_BINDING);
         if (pbo != 0) glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         e.colorTex = texture(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, res);
-        e.depthTex = texture(GL_R32F, GL_RED, GL_FLOAT, res);
+        e.depthTex = texture(GL_RG16F, GL_RG, GL_HALF_FLOAT, res);
         if (pbo != 0) glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
         e.fbo = glGenFramebuffers();
         glBindFramebuffer(GL_FRAMEBUFFER, e.fbo);
@@ -182,11 +194,27 @@ final class PostcardGl {
         int t = glGenTextures();
         glActiveTexture(GL_TEXTURE0 + GlStateSnapshot.UNIT_A);
         glBindTexture(GL_TEXTURE_2D, t);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal, res, res, 0, format, type, (java.nio.ByteBuffer) null);
+        int levels = mipLevels(res);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels - 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        for (int l = 0, sz = res; l < levels; l++, sz = Math.max(1, sz >> 1)) {
+            glTexImage2D(GL_TEXTURE_2D, l, internal, sz, sz, 0, format, type, (java.nio.ByteBuffer) null);
+        }
         return t;
+    }
+
+    static int mipLevels(int res) {
+        return 32 - Integer.numberOfLeadingZeros(res);
+    }
+
+    /** Rebuilds the mip chains after a capture (they drive the smooth depth proxy and the blurred fill). */
+    static void generateMips(PostcardCache.Entry e) {
+        glActiveTexture(GL_TEXTURE0 + GlStateSnapshot.UNIT_A);
+        glBindTexture(GL_TEXTURE_2D, e.colorTex);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, e.depthTex);
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
 
     static void ensureMeshCapacity(int floats) {
