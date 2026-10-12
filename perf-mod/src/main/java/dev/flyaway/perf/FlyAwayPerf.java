@@ -14,6 +14,10 @@ public final class FlyAwayPerf {
 
     public FlyAwayPerf(IEventBus modBus) {
         LOGGER.info("Fly Away performance patches loaded ({} mixins active)", PerfConfig.appliedCount());
+        if (FMLEnvironment.dist == Dist.CLIENT && net.neoforged.fml.ModList.get().isLoaded("immersive_portals_core")
+                && PerfConfig.isEnabled("imm_ptl", "IrisCompatPostcardMixin")) {
+            dev.flyaway.perf.imm_ptl.postcard.PostcardEvents.register(modBus);
+        }
         if (FMLEnvironment.dist == Dist.CLIENT && System.getProperty("flyaway.harness") != null) {
             dev.flyaway.perf.harness.BenchHarness.init();
         }
