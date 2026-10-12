@@ -72,9 +72,16 @@ public final class HitchLogger {
         }
     }
 
+    private static boolean isBoilerplate(String m) {
+        return m.startsWith("cpw.mods.") || m.startsWith("net.neoforged.fml.loading.") || m.startsWith("java.lang.reflect.")
+                || m.startsWith("jdk.internal.reflect.") || m.startsWith("java.lang.invoke.") || m.equals("net.minecraft.client.main.Main.main")
+                || m.equals("net.minecraft.client.Minecraft.run") || m.startsWith("org.prismlauncher.");
+    }
+
     private static void report(long durMs, List<StackTraceElement[]> samples) throws IOException {
         if (samples.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null && !PerfConfig.getBool("debug.hitchInMenus", false)) return;
         String where = mc.level == null ? "no world (loading/menu)" : mc.level.dimension().location().toString();
         Map<String, Integer> stacks = new HashMap<>();
         Map<String, Integer> methods = new HashMap<>();
@@ -83,7 +90,7 @@ public final class HitchLogger {
             Set<String> seen = new HashSet<>();
             for (int i = 0; i < st.length; i++) {
                 String m = st[i].getClassName() + "." + st[i].getMethodName();
-                if (seen.add(m)) methods.merge(m, 1, Integer::sum);
+                if (!isBoilerplate(m) && seen.add(m)) methods.merge(m, 1, Integer::sum);
                 if (i < 30) sb.append("    ").append(st[i]).append('\n');
             }
             stacks.merge(sb.toString(), 1, Integer::sum);
