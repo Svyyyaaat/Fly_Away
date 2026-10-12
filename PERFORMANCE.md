@@ -36,6 +36,7 @@ applied**. See "Things only you can do" below.
 | Portals | Per-frame cache of micimmptl's Sable straddle portal scans | ~0.6% |
 | VSS | Fix colliding `Long` keys (tree bins) in `LodRequestManager` | ~0.6% |
 | Xaero | VRAM query throttle, versioned region-highlight hash memo | ~0.5% |
+| Xaero | Portal-exit freeze: on a dimension change the world map no longer waits for its whole region-load queue before switching (stops after the current region) | **200-850 ms freeze per exit** (9.6% of the Oct 12 profile) |
 | Client tick | `animateTick` biome lookups through a chunk memo | ~0.7% |
 | Curios / Iron's | Memoised Curios item key; per-tick "ring equipped" memo (radar + name tags) | ~0.9% |
 | Gliders | Glider-in-curios lookup cache | ~0.3% |
