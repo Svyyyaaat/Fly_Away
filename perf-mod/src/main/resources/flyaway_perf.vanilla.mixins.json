@@ -14,6 +14,10 @@
   "client": [
     "clienttick.ClientLevelAnimateTickBiomeMixin",
     "entity.MinecraftFrameStampMixin",
+    "epicfight.AmbientOcclusionFaceFractureMemoMixin",
+    "epicfight.GameRendererFractureFrameMixin",
+    "epicfight.LevelRendererFracturePassMixin",
+    "epicfight.ModelBlockRendererCacheFractureMemoMixin",
     "iris.GlStateManagerFboDeferMixin",
     "iris.GlStateManagerProgramDedupMixin",
     "iris.ShaderInstanceSamplerNamesMixin",
