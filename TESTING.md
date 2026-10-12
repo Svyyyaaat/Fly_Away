@@ -52,6 +52,13 @@ switch exactly that one off in `config/flyaway_perf.properties` (`mixin.<area>.<
       (`compat.efprogressivediff.*`).
     - A Simply Swords Hivemind swarm should still follow and attack (`compat.simplyswords.*`).
 
+13. **Round 4 features:**
+    - **Postcards:** with shaders on, look at portal Q, then look at it through portal P. It should show a snapshot of Q's view. Walk through P and the snapshot fades to the live view.
+    - **Camera:** in F5, Shoulder Surfing and the Epic Fight camera, back up against a lit portal; the camera should stop in front of it.
+    - **TACZ:** fire a gun in Shoulder Surfing; the camera should kick.
+    - **Hotbar:** select slot 6 and go through a cross-dimension portal; the selected slot should stay on 6.
+    - **Fracture blocks:** do a big Epic Fight slam (Meteor Slam); there should be a smaller hitch than before and the blocks should look the same.
+
 ## Measuring
 
 - Run `/sparkc profiler start --thread *` for 60 s in the same scenario as your old profiles, then

@@ -71,6 +71,19 @@ Intentional visible changes (each can be switched off):
 - Turn off one patch with `mixin.<area>.<MixinClassName>=false`.
 - If something looks wrong, bisect by area first.
 
+
+## Gameplay fixes and features (round 4)
+
+| What | Details | Off switch |
+|---|---|---|
+| Portal postcards | With shaders, a portal seen through another portal used to show nothing. It now shows a reprojected snapshot of its view, refreshed whenever you look at it directly, or a swirl tinted with the destination's sky until you have looked at it. Costs ~0 CPU. Details: `perf-mod/docs/portal_postcards.md` | `imm_ptl.postcards=false` |
+| Camera vs portals | F5, Shoulder Surfing and Epic Fight's camera stop at portals like at a wall, so the camera can't slip behind a portal and render the wrong side. Just after you walk through, the camera hugs your head until you are ~4 blocks from the return portal, as it would against a wall. | `camera.portalsAreWalls=false` |
+| TACZ recoil in Shoulder Surfing | The gun kick now moves the Shoulder Surfing camera like in vanilla F5. | `camera.taczRecoilInShoulderSurfing=false` |
+| Hotbar slot jumping on portal entry | Root cause: Carry On re-sends a stale saved slot whenever you enter a level, and Immersive Portals' teleport never corrects it. Carry On's saved slot is now updated before it is sent. | `fix.keepHotbarSlotOnPortal=false` |
+| Frozen particles in portal views | Particles from a dimension you're not in never move (IP only ticks the current dimension), so portal views now skip them. | `imm_ptl.hideFrozenPortalParticles=false` |
+| Epic Fight fracture blocks | Each fracture block re-ran full smooth lighting for its whole model every frame (7% of your frame). Lighting lookups are now shared within a render pass, an identical image for about 4 of those 7%. NightFall trail slams also skip an unused entity scan per shockwave ray. | `mixin.epicfight.FractureBlockRendererLightMemoMixin=false` |
+| Stutter catcher | Any frame over 150 ms writes what the game was doing to `logs/flyaway-hitches.log`. Send that file after a freeze. | `debug.hitchLogger=false`, threshold `debug.hitchMs` |
+
 ## Suggested fix for your own mod (not patched from here)
 
 micimmptl `SubLevelGhostCollision.augmentIntersecting` costs about 0.7% of the server thread. On every collision of
