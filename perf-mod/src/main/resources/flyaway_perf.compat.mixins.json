@@ -12,6 +12,7 @@
     "accessories.AccessoriesHolderImplAccessor",
     "accessories.ExpandedSimpleContainerValidIndexMixin",
     "aether.AetherCapeStreamMixin",
+    "carryon.CarryOnJoinSyncSelectedSlotMixin",
     "architectury.EventFactoryHandleCacheMixin",
     "chunkactivitytracker.ChunkActivityMapAsyncSaveMixin",
     "curios.CurioInventoryClearCachedIdleMixin",
